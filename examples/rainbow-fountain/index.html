@@ -12,8 +12,10 @@
 		canvas.width = window.innerWidth;
 		canvas.height = window.innerHeight;
 
-		const WGU = WebGPGPU(canvas.getContext("webgl2", {antialias: false}));
-		new WGU.VertexFeedbackComputer({
+		const WGU = WebGPGPU(canvas);
+                
+                // Create a vertex feedback computer with 800000 particles
+		const vfc = new WGU.VertexFeedbackComputer({
 
 			units: 8e5,
 			struct: {
@@ -36,25 +38,28 @@
 
 			updateStep: {
 				glsl: `
-					void main() {
-						o_position = i_position + i_velocity;
-						o_velocity = i_velocity - 0.001 * i_position / i_mass;
-						o_mass = i_mass;
-						o_color = i_color;
-					}
+                                    void main() {
+                                        o_position = i_position + i_velocity;
+                                        o_velocity = i_velocity - 0.001 * i_position / i_mass;
+                                        o_mass = i_mass;
+                                        o_color = i_color;
+                                    }
 				`
 			},
 
 			renderStep: {
 				glsl: `
-					void main() {
-						gl_Position = vec4(i_position, 0.0, 1.0);
-						vertexColor = vec4(i_color, .5);
-						gl_PointSize = i_mass/2.0;
-					}
+                                    void main() {
+                                        gl_Position = vec4(i_position, 0.0, 1.0);
+                                        vertexColor = vec4(i_color, .5);
+                                        gl_PointSize = i_mass/2.0;
+                                    }
 				`
 			}
 		});
+                
+                vfc.run();
+                
 	</script>
 </body>
 </html>
