@@ -14,17 +14,16 @@
 
 		const WGU = WebGPGPU(canvas);
                 
-                // Create a vertex feedback computer with 800000 particles
+                // Create a vertex feedback computer with one MILLION particles
 		const vfc = new WGU.VertexFeedbackComputer({
-
-			units: 8e5,
+			units: 1e6,
 			struct: {
 				position: "vec2",
 				velocity: "vec2",
 				mass: "float",
 				color: "vec3"
 			},
-
+/*
 			initialize: (i, buffer) => buffer.set(new Uint8Array(new Float32Array([
 				Math.random(),
 				Math.random(),
@@ -35,6 +34,12 @@
 				Math.random(),
 				Math.random()
 			]).buffer)),
+*/			initializeObject: (i) => { return {
+				position: [Math.random(),Math.random()],
+				velocity: [(Math.random() - .25) / 20,(Math.random() - .25) / 20],
+				mass: 1 + Math.random() * 4,
+				color: [Math.random(),Math.random(),Math.random()] };
+                        },
 
 			updateStep: {
 				glsl: `
@@ -58,7 +63,7 @@
 			}
 		});
                 
-                vfc.run();
+        vfc.run();
                 
 	</script>
 </body>
