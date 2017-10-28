@@ -1,24 +1,41 @@
-# [WebGPGPU](https://github.com/npny/webgpgpu)
+# [WebGP.js](https://github.com/glennirwin/webgp)
+## Forked from: [WebGPGPU](https://github.com/npny/webgpgpu)
 
 ![License MIT](https://img.shields.io/badge/license-MIT-lightgrey.svg?style=flat-square)
 ![ES6](https://img.shields.io/badge/ES-6-lightgrey.svg?style=flat-square)
 ![WebGL2](https://img.shields.io/badge/WebGL-2-lightgrey.svg?style=flat-square)
 ![OpenGL ES 3.0](https://img.shields.io/badge/OpenGL-ES%203.0-lightgrey.svg?style=flat-square)
 
-[WebGPGPU](https://github.com/npny/webgpgpu), or `WGU` for short, is a [WebGL2](https://www.khronos.org/registry/webgl/specs/latest/2.0/) based library enabling general purpose computation on the GPU.
+[WebGP](https://github.com/glennirwin/webgp=) is a library that uses [WebGL2](https://www.khronos.org/registry/webgl/specs/latest/2.0/) to enable general purpose computation, visualization, and more using the GPU in your computer right in your web browser (current Chrome and Firefox browsers have WebGL2 support built-in).  All the GL calls are handled by the library for you.  Just get some data, add shader code for your calculation, and hit Go.  This library will let you visit, evaluate, calculate, display, and even update an array of even a million or more items in a fraction of a millisecond and your CPU won't even warm up (your GPU will - you have been warned).
 
-* **[Examples](https://npny.github.io/webgpgpu/examples)**
+WebGP goes beyond WebGPGPU by allowing:
+* uniforms of float and int types supported
+* full control of update steps and iteration counters
+* VertexComputer updateStep and renderStep in constructor are optional, can use one or both
+* can share vertex arrays between multiple VertexComputer instances using VertexArray object
+* update step can capture output into textures and they can be fed back in as uniforms for sampling and lookups
+* Vertex unit data can now be initialized using a closure returning an object that resembles the structure
+* Vertex unit data can be pulled as objects for inspection and easily updated back to the GPU buffer
+* Debug controls for Stop, Go, Step, Slow can be added with Util.createShaderControls and calling Util.GPControls(loop) in your render loop
+* enable simple heads up logging with const log = Util.initializeHeadsUpLog()  - will show on a textarea overlay, a function is returned to allow you to pass messages to the log with log("Hello World")
+
+* **[Example using new features](https://glennirwin.github.io/webgp/examples/poly-fountain.html)**
+
+
+* **[WebGPGPU Example](https://glennirwin.github.io/webgp/examples/rainbow-fountain.html)**
+
 * **[Documentation](https://npny.github.io/webgpgpu/docs)**
-* **[Download](https://rawgit.com/npny/webgpgpu/master/src/webgpgpu.js)**
+
+* **[Download](https://rawgit.com/glennirwin/webgp/master/src/webgp.js)**
 * **[Technology](https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API#WebGL_2)**
 
 ## Examples ##
 
 ```javascript
-const WGU = WebGPGPU(context);
-new WGU.VertexFeedbackComputer({
+const GP = WebGP(context);
+const vc = new GP.VertexComputer({
 
-	units: 8e5,
+	units: 1e6,
 	struct: {
 		position: "vec2",
 		velocity: "vec2",
@@ -48,13 +65,14 @@ new WGU.VertexFeedbackComputer({
 			}
 		`
 	}
-
+	
 });
+vc.run();
 ```
 
-[See this example in action here](https://npny.github.io/webgpgpu/examples/rainbow-fountain)
+[See this example in action here](https://glennirwin.github.io/webgp/examples/rainbow-fountain.html)
 
-The code above uses a `VertexFeedbackComputer` (a particular way of computing stuff provided by the library, relying on Vertex Buffers and OpenGL ES 3.0's Transform Feedback) to simulate a simple 800,000 particle system. Each particle has its own position, velocity, mass, and color, initially random, and is represented by a coloured point as it falls toward the origin.
+The code above creates a `VertexComputer` where many elements can be evaluated and updated very quickly, but individually).  The library, relying on Vertex Buffers and OpenGL ES 3.0's Transform Feedback) can simulate a simple 1,000,000 particle system. Each particle has its own position, velocity, mass, and color, initially random, and is represented by a coloured point as it falls toward the origin.
 
 ## Documentation ##
 
@@ -62,26 +80,25 @@ Documentation is available online [here](https://npny.github.io/webgpgpu/docs) o
 
 ## Download ##
 
-Include the library from [rawgit.com](https://rawgit.com/npny/webgpgpu/master/src/webgpgpu.js) or download it locally
+Include the library from [rawgit.com](https://rawgit.com/glennirwin/webgp/master/src/webgp.js) or download it locally
 ```html
-<script src="https://rawgit.com/npny/webgpgpu/master/src/webgpgpu.js"></script>
-<script src="src/webgpgu.js"></script>
+<script src="https://rawgit.com/glennirwin/webgp/master/src/webgp.js"></script>
+<script src="src/webgp.js"></script>
 ```
 
-In order to use WebGPGPU in your page, you then need to initialize it with an existing, valid WebGL2 context:
+In order to use WebGP in your page, you then need to initialize it with a canvas element and the WebGL2 context will be created automatically:
 ```html
 <canvas id="canvas"></canvas>
 <script>
 	const canvas = document.getElementById("canvas");
-	const context = canvas.getContext("webgl2");
-	const WGU = WebGPGPU(context);
+	const GP = WebGP(canvas);
 
 	// Let's get rolling
-	new WGU.VertexFeedbackComputer();
+	new GP.VertexComputer();
 </script>
 ```
 
 
 ## License ##
-
+[WebGP](https://github.com/glennirwin/webgp/) is released under the [MIT license](http://opensource.org/licenses/mit-license.php). Glenn Irwin, 2017.
 [WebGPGPU](https://github.com/npny/webgpgpu/) is released under the [MIT license](http://opensource.org/licenses/mit-license.php). Pierre Boyer, 2017.
