@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>WebGP - Poly Fountain - multiple vertex feedback computers with work/debug textures</title>
+        <meta charset="utf-8">
+    </head>
+    <body style="margin: 0; background-color: black;">
+        <canvas></canvas>
+        <script src="../src/webgp.js"></script>
+        <script>
+            // WebGPGPU Example
+            const canvas = document.querySelector("canvas");
+            canvas.width = window.innerWidth - 5;
+            canvas.height = window.innerHeight - 5;
+            
+            const GP = WebGP(canvas);
+
+            let log = GP.Util.initializeHeadsUpLog();
+            GP.Util.createShaderControls("GP");
+            
+            let stats = document.createElement("paragraph");
+            stats.appendChild(document.createTextNode(""));
+            GP.Util.butdiv.appendChild(stats);
+           
+
+            // Structure for uniforms, values will be automatically mapped to these by name
+            const uniforms = {time: Date.now(), accel: 0.5, tex: null, tex2: null};
+
+            // Setup data textures
+            let side = GP.Util.data2d(5000);
+            const texOut = GP.Util.buildDataTexture(side, side);
+
+            let side2 = GP.Util.data2d(50000);
+            const texOut2 = GP.Util.buildDataTexture(side2, side2);
+
+            // Simple computer with update and render
+            // 500 big whites with high mass
+            const v = new GP.VertexComputer({
+                units: 500,
+                struct: {
+                    position: "vec2",
+                    velocity: "vec2",
+                    mass: "float",
+                    color: "vec3"
+                },
+                uniforms: uniforms,
+                initialize: (i, buffer) => buffer.set(new Uint8Array(new Float32Array([
+                        Math.random(), //Position
+                        Math.random(),
+                        (Math.random() - .25) / 20, //Velocity
+                        (Math.random() - .25) / 20,
+                        1 + Math.random() * 10, //Mass
+                        0xFF, //Red
+                        0xFF, //Green
+                        0xFF  //Blue
+                    ]).buffer)),
+                updateStep: {
+                    glsl: `
+                        void main() {
+                            o_position = i_position + i_velocity;
+                            o_velocity = i_velocity - 0.001 * i_position / i_mass;
+                            o_mass = i_mass;
+                            o_color = i_color;
+                        }
+                        `},
+                renderStep: {
+                    glsl: `
+                        void main() {
+                            gl_Position = vec4(i_position, 0.0, 1.0);
+                            gl_PointSize = 5.0;
+                            vertexColor = vec4(i_color,1.0);
+                        }
+                    `}
+            });
+
+            // Update and Render 50000 particles With texture out
+            const v1 = new GP.VertexComputer({
+                units: 50000,
+                struct: {
+                    position: "vec2",
+                    velocity: "vec2",
+                    mass: "float",
+                    color: "vec3"
+                },
+                uniforms: uniforms,
+                initialize: (i, buffer) => buffer.set(new Uint8Array(new Float32Array([
+                        Math.random(),
+                        Math.random(),
+                        (Math.random() - .25) / 20,
+                        (Math.random() - .25) / 20,
+                        1 + Math.random() * 4,
+                        Math.random(),
+                        Math.random(),
+                        Math.random()
+                    ]).buffer)),
+                textureOut: texOut2, // must assign textureColor value in glsl code
+
+                updateStep: {
+                    glsl: `
+                        void main() {
+                            o_position = i_position + i_velocity;
+                            o_velocity = i_velocity - 0.001 * i_position / i_mass;
+                            o_mass = i_mass;
+                            o_color = i_color;
+                            vec2 pos = vec2(float(gl_VertexID / ` + side2 + `)/` + side2 + `.0, float(gl_VertexID % ` + side2 + `)/` + side2 + `.0) * 2.0 - 1.0;
+                            gl_Position = vec4(pos, 1.0,1.0);
+                            textureColor = vec4(o_position,o_velocity.x * o_velocity.y, 0.5);
+                        }
+                    `},
+                renderStep: {
+                    glsl: `
+                        void main() {
+                            gl_Position = vec4(i_position, 0.0, 1.0);
+                            vertexColor = vec4(i_color, .5);
+                            gl_PointSize = i_mass/2.0;
+                        }
+                    `}
+            });
+
+            // Update only with texture out (red particles that get heavier over time)
+            const v2 = new GP.VertexComputer({
+                units: 5000,
+                struct: {
+                    position: "vec2",
+                    velocity: "vec2",
+                    mass: "float",
+                    color: "vec3"
+                },
+                uniforms: uniforms,
+                initialize: (i, buffer) => buffer.set(new Uint8Array(new Float32Array([
+                        Math.random(),
+                        Math.random(),
+                        (Math.random() - .25) / 20,
+                        (Math.random() - .25) / 20,
+                        1 + Math.random() * 4,
+                        Math.random(),
+                        Math.random(),
+                        Math.random()
+                    ]).buffer)),
+                textureOut: texOut,
+                updateStep: {
+                    params: {time: "float", accel: "float"},
+                    glsl: `
+                        void main() {
+                            o_position = i_position + i_velocity;
+                            o_velocity = i_velocity - 0.001 * i_position / i_mass * u_accel;
+                            o_mass = i_mass + 0.0001 * u_time;
+                            vec2 pos = vec2(float(gl_VertexID / ` + side + `)/` + side + `.0, float(gl_VertexID % ` + side + `)/` + side + `.0) * 2.0 - 1.0;
+                            gl_Position = vec4(pos, 1.0,1.0);
+                            textureColor = vec4(o_position,o_velocity.x * o_velocity.y,0.5);
+                        }
+                    `}
+            });
+
+            // Render only
+            // Will be given the result of v2
+            const r2 = new GP.VertexComputer({
+                units: v2.units,
+                struct: v2.struct.fields,
+                renderStep: {
+                    glsl: `
+                        void main() {
+                            gl_Position = vec4(i_position, 1.0, 1.0);
+                            vertexColor = vec4(1,0,0,1);
+                            gl_PointSize = 3.0;
+                        }
+                    `}
+            });
+            r2.setBuffers(v2.getBuffers());
+
+            // Render a texture to a viewport (useful for debugging)
+            // Will be given the texture result of v1 to display for debug
+            const d1 = new GP.VertexComputer({
+                units: v1.units,
+                struct: v1.struct.fields,
+                uniforms: uniforms,
+                renderStep: {
+                    viewport: {x: 100, y: 100, width: side2 * 3, height: side2 * 3},
+                    params: {tex: "sampler2D"},
+                    glsl: `
+                        void main() {
+                            vec2 pos = vec2(float(gl_VertexID / ` + side2 + `)/` + side2 + `.0, float(gl_VertexID % ` + side2 + `)/` + side2 + `.0) * 2.0 - 1.0;
+                            vertexColor = texture(u_tex, (pos + 1.0) / 2.0);
+                            gl_Position =  vec4(pos,1.0,1.0);
+                            gl_PointSize = 2.0;
+                        }
+                    `}
+            });
+            d1.setBuffers(v1.getBuffers());
+
+            // Render a second work texture
+            // Will be given the texture result of v1 to display for debug
+            const d2 = new GP.VertexComputer({
+                units: v2.units,
+                struct: v2.struct.fields,
+                uniforms: uniforms,
+                renderStep: {
+                    viewport: {x: 800, y: 100, width: side * 3, height: side * 3},
+                    params: {tex: "sampler2D"},
+                    glsl: `
+                        void main() {
+                            vec2 pos = vec2(float(gl_VertexID / ` + side + `)/` + side + `.0, float(gl_VertexID % ` + side + `)/` + side + `.0) * 2.0 - 1.0;
+                            vertexColor = texture(u_tex, (pos + 1.0) / 2.0);
+                            gl_Position =  vec4(pos,1.0,1.0);
+                            gl_PointSize = 2.0;
+                        }
+                    `}
+            });
+            d2.setBuffers(v2.getBuffers());
+
+            uniforms.accel = 0.001;
+            
+            var cyclesPerLoop = 1;
+            var startTime = Date.now();
+            var computeTime = 0.0;
+            var cycleCount = 0;
+            var lastTime = Date.now();
+            
+            function loop() {
+                GP.Util.clear();
+                for (i=0;i<cyclesPerLoop;i++) {
+                    cycleCount++; 
+                    uniforms.time = Date.now() - lastTime; 
+                    lastTime = Date.now();
+                    
+                    // One step of the process
+                    uniforms.tex2 = texOut;
+                    v.step();
+                    v1.step();
+                    v2.step();
+                    r2.step();
+                    uniforms.tex = v2.getResultTexture();
+                    d2.step();
+                    uniforms.tex = v1.getResultTexture();;
+                    d1.step();
+                    
+                    computeTime += Date.now() - lastTime;
+                    if (cycleCount % 100 === 0) {
+                        if (stats) stats.innerText = (cycleCount/((Date.now()-startTime)/1000)).toFixed(1)+" cycles/second "+(computeTime/cycleCount).toFixed(3)+" ms/cycle   cycles/loop="+cyclesPerLoop;
+                        startTime = Date.now();
+                        computeTime = 0.0;
+                        cycleCount = 0;
+                    }
+                }
+                GP.Util.GPControls(loop);
+            }
+
+            loop();   
+            
+        </script>
+    </body>
+</html>
