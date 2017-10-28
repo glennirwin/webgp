@@ -23,6 +23,7 @@ WebGP goes beyond WebGPGPU by allowing:
 * **[Example using new features](https://glennirwin.github.io/webgp/examples/poly-fountain.html)**
 
 
+
 * **[Updated WebGPGPU Example](https://glennirwin.github.io/webgp/examples/rainbow-fountain.html)**
 
 * **[WebGPGPU Documentation](https://npny.github.io/webgpgpu/docs)**
@@ -75,7 +76,7 @@ vc.run();
 
 [See this example in action here](https://glennirwin.github.io/webgp/examples/rainbow-fountain.html)
 
-The code above creates a `VertexComputer` where many elements can be evaluated and updated very quickly, but individually).  The library, relying on Vertex Buffers and OpenGL ES 3.0's Transform Feedback can simulate a simple 1,000,000 particle system. Each particle has its own position, velocity, mass, and color, initially random, and is represented by a coloured point as it falls toward the origin.
+The code above creates a `VertexComputer` where many elements can be evaluated and updated very quickly.  The library, relying on Vertex Buffers and OpenGL ES 3.0's Transform Feedback can simulate a simple 1,000,000 particle system. Each particle has its own position, velocity, mass, and color, initially random, and is represented by a coloured point as it falls toward the origin.
 
 ## Documentation ##
 
@@ -86,7 +87,7 @@ Documentation is available online [here](https://npny.github.io/webgpgpu/docs) o
 Include the library from [rawgit.com](https://rawgit.com/glennirwin/webgp/master/src/webgp.js) or download it locally
 ```html
 <script src="https://rawgit.com/glennirwin/webgp/master/src/webgp.js"></script>
-<script src="src/webgp.js"></script>
+<script src="webgp.js"></script>
 ```
 
 In order to use WebGP in your page, you then need to initialize it with a canvas element and the WebGL2 context will be created automatically:
@@ -97,7 +98,7 @@ In order to use WebGP in your page, you then need to initialize it with a canvas
 	const GP = WebGP(canvas);
 
 	// Let's get rolling
-	new GP.VertexComputer();
+	new GP.VertexComputer({ units: 1, .... });
 </script>
 ```
 
