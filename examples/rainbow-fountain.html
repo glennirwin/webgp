@@ -13,10 +13,17 @@
         canvas.height = window.innerHeight;
 
         const GP = WebGP(canvas);
+        
+        let log = GP.Util.initializeHeadsUpLog();
+        GP.Util.createShaderControls("GP");
+
+        let stats = document.createElement("paragraph");
+        stats.appendChild(document.createTextNode(""));
+        GP.Util.butdiv.appendChild(stats);
 
         // Create a vertex feedback computer with one MILLION particles
         // this is a very simple example of a WebGP process
-        const vc = new GP.VertexComputer({
+         const vc = new GP.VertexComputer({
             
                 // The number of units/elements/objects etc...
                 units: 1e6,
@@ -61,7 +68,40 @@
                 }
         });
                 
-        vc.run();
+        //vc.run();  // the simple way to run
+        
+        // This way controla the loop and collects and reports statistics
+        var cyclesPerLoop = 1;
+        var startTime = Date.now();
+        var computeTime = 0.0;
+        var cycleCount = 0;
+        var lastTime = Date.now();
+
+
+        function loop() {
+            GP.Util.clear();
+            for (i=0;i<cyclesPerLoop;i++) {
+                cycleCount++; 
+                lastTime = Date.now();
+
+                // One step of the process
+                vc.step();
+                GP.Util.flush();
+                
+                computeTime += Date.now() - lastTime;
+                if (cycleCount % 100 === 0) {
+                    if (stats) stats.innerText = (cycleCount/((Date.now()-startTime)/1000)).toFixed(1)+" cycles/second "+(computeTime/cycleCount).toFixed(3)+" ms/cycle   cycles/loop="+cyclesPerLoop;
+                    startTime = Date.now();
+                    computeTime = 0.0;
+                    cycleCount = 0;
+                }
+            }
+            GP.Util.GPControls(loop);
+        }
+
+        log("Starting the fountain...");
+        loop();   
+  
                 
     </script>
 </body>

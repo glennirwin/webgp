@@ -122,7 +122,7 @@ function WebGP(canvas, context) {
                 let markTime = Date.now();
                 this.initialData = new ArrayBuffer(this.units * this.struct.byteSize);
                 for (let i = 0; i < this.units; i++) description.initialize(i, new Uint8Array(this.initialData, i * this.struct.byteSize, this.struct.byteSize));
-                console.log("initialized "+this.units+" objects in "+(Date.now()-markTime)+" ms");
+                if (Util.logger) Util.logger("initialized "+this.units+" objects in "+(Date.now()-markTime)+" ms");
             }
 
             // Initialize with objects created by a closure given the index that returns an object with properties for each value
@@ -135,7 +135,7 @@ function WebGP(canvas, context) {
                     let newdata = description.initializeObject(i);
                     this.struct.layout.forEach(f => { f.setFunction(dataview, off + f.offset, newdata[f.field]); });
                 }
-                console.log("initialized "+this.units+" objects in "+(Date.now()-markTime)+" ms");
+                if (Util.logger) Util.logger("initialized "+this.units+" objects in "+(Date.now()-markTime)+" ms");
             }
 
             // Setup the double buffers for the vertex arrays
@@ -493,7 +493,9 @@ function WebGP(canvas, context) {
         clear() {  // Clear the display
             gl.clear(gl.COLOR_BUFFER_BIT);
         }, 
-
+        
+        flush() { gl.flush(); },
+        
         data2d(units) {   // calculates the size of a side of a 2d square to hold the units in a texture
             return Math.round(Math.sqrt(units)) + 1;
         }, 
@@ -629,7 +631,8 @@ function WebGP(canvas, context) {
         // Browser UI Admin stuff - not really GPU specific but it does specifically call the simulation and set parameters
         WINDOW_STOP: false,  // Allows us to cancel all data receipts if something goes wrong
         SHOW_HUL: false,
-        LOG_TEXT: "\n",
+        LOG_TEXT: ""+String.fromCharCode(13),
+        logger(m) { console.log(m); },   // Default console logger
 
         initializeHeadsUpLog() {
             // Heads up display of logging
@@ -641,30 +644,30 @@ function WebGP(canvas, context) {
             Util.logelement.setAttribute("cols", "150");
             Util.logelement.setAttribute("width", "100%");
             Util.logelement.setAttribute("height", "100%");
-            Util.logelement.setAttribute("style", "background-color: transparent; color: white; font-size: 8pt; border: none; outline: none;");
+            Util.logelement.setAttribute("style", " white-space: pre-line; background-color: transparent; color: white; font-size: 8pt; border: none; outline: none;");
             Util.logelement.appendChild(document.createTextNode(""));
             Util.logdiv.appendChild(Util.logelement);
             document.body.appendChild(Util.logdiv);
             // setup general error trapping to log
             window.onerror = function (errorMsg, url, lineNumber, column, errorObj) {
-                Util.log('Error: ' + errorMsg + ' Script: ' + url + ' Line: ' + lineNumber + ' Column: ' + column + ' StackTrace: ' +  errorObj);
+                Util.logger('Error: ' + errorMsg + ' Script: ' + url + ' Line: ' + lineNumber + ' Column: ' + column + ' StackTrace: ' +  errorObj);
                 Util.WINDOW_STOP=true;
                 window.stop();
             }
             Util.SHOW_HUL = true;
-            Util.log = function log(t) {
+            Util.logger = function(t) {
                 if (Util.SHOW_HUL) {
-                    Util.LOG_TEXT += t;
-                    Util.logelement.innerText = Util.LOG_TEXT;
+                    Util.LOG_TEXT += String.fromCharCode(13)+t;
+                    Util.logelement.innerHTML = Util.LOG_TEXT;
                 } else {
                     console.log(t);
                 }
             };
-            return Util.log;
+            return Util.logger;
         },
 
     // Add Shader controls - call SHADER_CONTROLS(myUpdateFunction) in your update function
-    SHADER_STOP: true,
+    SHADER_STOP: false,
     SHADER_STEP: false,
     SHADER_SLOW: false,
     SHADER_DEFAULT_INTERVAL: 250,
