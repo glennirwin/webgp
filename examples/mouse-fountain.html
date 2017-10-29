@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-	<title>WebGP - Rainbow Fountain</title>
+	<title>WebGP - Mouse Fountain</title>
 	<meta charset="utf-8">
 </head>
 <body style="margin: 0; background-color: black;">
@@ -9,8 +9,8 @@
     <script src="../src/webgp.js"></script>
     <script>
         const canvas = document.querySelector("canvas");
-        canvas.width = window.innerWidth - 3;
-        canvas.height = window.innerHeight - 3;
+        canvas.width = window.innerWidth - 5;
+        canvas.height = window.innerHeight - 5;
 
         const GP = WebGP(canvas);
         
@@ -18,6 +18,13 @@
         let log = GP.Util.initializeHeadsUpLog();
         GP.Util.createShaderControls("GP");
 
+        const uniforms = { time: Date.now(), mousePos: [0.0, 0.0] };
+        
+        window.addEventListener('mousemove', event => {
+           uniforms.mousePos[0] = event.clientX / canvas.width * 2.0 - 1.0; 
+           uniforms.mousePos[1] = (event.clientY / canvas.height * 2.0 - 1.0) * -1.0; 
+        });
+        
         // Create a vertex computer with ONE MILLION particles
         // this is a very simple example of a WebGP process
          const vc = new GP.VertexComputer({
@@ -33,22 +40,29 @@
                     color: "vec3"
                 },
 
+                uniforms: uniforms,
+                
                 // initialize each objects data with a given object.  
                 // Note: Use the index i passed in to map your data
                 initializeObject: (i) => { return {
-                    position: [Math.random(),Math.random()],
+                    position: [Math.random()*2-1,Math.random()*2-1],
                     velocity: [(Math.random() - .25) / 20,(Math.random() - .25) / 20],
-                    mass: 1 + Math.random() * 4,
-                    color: [Math.random(),Math.random(),Math.random()] };
+                    mass: 1 + Math.random() * 2,
+                    color: [0.0,Math.random(),Math.random()* 0.5] };
                 },
 
                 // update each unit using this shader code
                 // Note; make sure to assign all the outputs
                 updateStep: {
+                    params: { mousePos: "vec2" },
                     glsl: `
                         void main() {
-                            o_position = i_position + i_velocity;
-                            o_velocity = i_velocity - 0.001 * i_position / float(i_mass);
+                            float dist = distance(i_position, u_mousePos);
+                            vec2 dir = u_mousePos - i_position;
+                            float force = min(0.01, (dist * dist) * 0.001);
+                            vec2 accel = force / float(i_mass) * dir;
+                            o_velocity = (i_velocity + accel) * 0.998;
+                            o_position = i_position + o_velocity;
                             o_mass = i_mass;
                             o_color = i_color;
                         }  `

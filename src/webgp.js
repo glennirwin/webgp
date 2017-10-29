@@ -273,7 +273,7 @@ function WebGP(canvas, context) {
         run() {  // run in loop forever
             Util.clear();
             this.step();
-            requestAnimationFrame(this.run.bind(this));
+            Util.GPControls(this.run.bind(this));
         }
         
         step(iteration) {  // run a single step - Use each buffer alternatively on each step (send iteration to coordinate shared buffers)
@@ -761,9 +761,29 @@ function WebGP(canvas, context) {
         };
         xmlhttp.open("GET", url, true);
         xmlhttp.send();
-    }
+    },
 
+    // A handy object to monitor the time spent doing things
+    // call mark() to start timing a cycle, and check() to stop and accumulate time
+    // cps() returns cycles/second, mpc() returns milliseconds/cycle
+    // 
+    stopWatch() {
+            return {
+                startTime: Date.now(),
+                computeTime: 0.0,
+                cycleCount: 0,
+                lastTime: Date.now(),
+                mark: function () { this.cycleCount++; this.lastTime = Date.now(); },
+                check: function () { this.computeTime += Date.now() - this.lastTime; return this.cycleCount; },
+                cps: function() { return (this.cycleCount/((Date.now()-this.startTime)/1000)); },
+                mpc: function() { return (this.computeTime/this.cycleCount); },
+                reset: function() { this.startTime = Date.now(); this.computeTime = 0.0; this.cycleCount = 0; },
+                stats: function() { return this.cps().toFixed(1)+" cycles/second "+this.mpc().toFixed(3)+" ms/cycle "; }
+            };
+    }
+ 
 };  // End Util class
 
+ 
     return {VertexComputer, VertexArray, Util};
 }

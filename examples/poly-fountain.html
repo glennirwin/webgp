@@ -10,9 +10,10 @@
         <script>
             // WebGPGPU Example
             const canvas = document.querySelector("canvas");
-            canvas.width = window.innerWidth - 5;
-            canvas.height = window.innerHeight - 5;
+            canvas.width = window.innerWidth - 3;
+            canvas.height = window.innerHeight - 3;
             
+            // Get a GraphicsProcessor
             const GP = WebGP(canvas);
 
             let log = GP.Util.initializeHeadsUpLog();
@@ -21,21 +22,17 @@
             let stats = document.createElement("paragraph");
             stats.appendChild(document.createTextNode(""));
             GP.Util.butdiv.appendChild(stats);
-           
 
             // Structure for uniforms, values will be automatically mapped to these by name
-            const uniforms = {time: Date.now(), accel: 0.5, tex: null, tex2: null};
+            const uniforms = {time: Date.now(), accel: 0.5, debugTexture: null };
 
             // Setup data textures
-            let side = GP.Util.data2d(5000);
-            const texOut = GP.Util.buildDataTexture(side, side);
-
-            let side2 = GP.Util.data2d(50000);
-            const texOut2 = GP.Util.buildDataTexture(side2, side2);
+            let redTexDim = GP.Util.data2d(5000);
+            let particleTexDim = GP.Util.data2d(50000);
 
             // Simple computer with update and render
             // 500 big whites with high mass
-            const v = new GP.VertexComputer({
+            const snowballs = new GP.VertexComputer({
                 units: 500,
                 struct: {
                     position: "vec2",
@@ -74,7 +71,7 @@
             });
 
             // Update and Render 50000 particles With texture out
-            const v1 = new GP.VertexComputer({
+            const particles = new GP.VertexComputer({
                 units: 50000,
                 struct: {
                     position: "vec2",
@@ -93,17 +90,18 @@
                         Math.random(),
                         Math.random()
                     ]).buffer)),
-                textureOut: texOut2, // must assign textureColor value in glsl code
+                textureOut: true, // must assign textureColor value in glsl code
 
                 updateStep: {
-                    glsl: `
+                    glsl: GP.Util.dataTextureMacros+`
+                    #define TEX_WIDTH `+ particleTexDim 
+                +`
                         void main() {
                             o_position = i_position + i_velocity;
                             o_velocity = i_velocity - 0.001 * i_position / i_mass;
                             o_mass = i_mass;
                             o_color = i_color;
-                            vec2 pos = vec2(float(gl_VertexID / ` + side2 + `)/` + side2 + `.0, float(gl_VertexID % ` + side2 + `)/` + side2 + `.0) * 2.0 - 1.0;
-                            gl_Position = vec4(pos, 1.0,1.0);
+                            gl_Position = TEXTURE_POS(gl_VertexID, TEX_WIDTH);
                             textureColor = vec4(o_position,o_velocity.x * o_velocity.y, 0.5);
                         }
                     `},
@@ -118,7 +116,7 @@
             });
 
             // Update only with texture out (red particles that get heavier over time)
-            const v2 = new GP.VertexComputer({
+            const tinyReds = new GP.VertexComputer({
                 units: 5000,
                 struct: {
                     position: "vec2",
@@ -137,26 +135,26 @@
                         Math.random(),
                         Math.random()
                     ]).buffer)),
-                textureOut: texOut,
+                textureOut: true,
                 updateStep: {
                     params: {time: "float", accel: "float"},
-                    glsl: `
+                    glsl: GP.Util.dataTextureMacros+`
+                        #define TEX_WIDTH `+ redTexDim  +`
                         void main() {
                             o_position = i_position + i_velocity;
                             o_velocity = i_velocity - 0.001 * i_position / i_mass * u_accel;
                             o_mass = i_mass + 0.0001 * u_time;
-                            vec2 pos = vec2(float(gl_VertexID / ` + side + `)/` + side + `.0, float(gl_VertexID % ` + side + `)/` + side + `.0) * 2.0 - 1.0;
-                            gl_Position = vec4(pos, 1.0,1.0);
+                            gl_Position = TEXTURE_POS(gl_VertexID, TEX_WIDTH);
                             textureColor = vec4(o_position,o_velocity.x * o_velocity.y,0.5);
                         }
                     `}
             });
 
             // Render only
-            // Will be given the result of v2
-            const r2 = new GP.VertexComputer({
-                units: v2.units,
-                struct: v2.struct.fields,
+            // Will be given the result of tinyReds
+            const renderReds = new GP.VertexComputer({
+                units: tinyReds.units,
+                struct: tinyReds.struct.fields,
                 renderStep: {
                     glsl: `
                         void main() {
@@ -166,80 +164,75 @@
                         }
                     `}
             });
-            r2.setBuffers(v2.getBuffers());
+            renderReds.setBuffers(tinyReds.getBuffers());
 
             // Render a texture to a viewport (useful for debugging)
-            // Will be given the texture result of v1 to display for debug
-            const d1 = new GP.VertexComputer({
-                units: v1.units,
-                struct: v1.struct.fields,
+            // Will be given the texture result of particles to display for debug
+            const debugParticles = //GP.Util.createTextureDisplay(particles.units, particles.struct.fields, uniforms, particleTexDim, 100, 100);
+                new GP.VertexComputer({
+                units: particles.units,
+                struct: particles.struct.fields,
                 uniforms: uniforms,
                 renderStep: {
-                    viewport: {x: 100, y: 100, width: side2 * 3, height: side2 * 3},
-                    params: {tex: "sampler2D"},
-                    glsl: `
+                    viewport: {x: 100, y: 100, width: particleTexDim * 3, height: particleTexDim * 3},
+                    params: {debugTexture: "sampler2D"},
+                    glsl: GP.Util.dataTextureMacros+`
+                        #define TEX_WIDTH `+ particleTexDim +`
                         void main() {
-                            vec2 pos = vec2(float(gl_VertexID / ` + side2 + `)/` + side2 + `.0, float(gl_VertexID % ` + side2 + `)/` + side2 + `.0) * 2.0 - 1.0;
-                            vertexColor = texture(u_tex, (pos + 1.0) / 2.0);
-                            gl_Position =  vec4(pos,1.0,1.0);
+                            vec4 pos = TEXTURE_POS(gl_VertexID,TEX_WIDTH);
+                            vertexColor = texture(u_debugTexture, (pos.xy + 1.0) / 2.0);
+                            gl_Position =  vec4(pos.xy,1.0,1.0);
                             gl_PointSize = 2.0;
                         }
                     `}
             });
-            d1.setBuffers(v1.getBuffers());
+            debugParticles.setBuffers(particles.getBuffers());
 
             // Render a second work texture
             // Will be given the texture result of v1 to display for debug
-            const d2 = new GP.VertexComputer({
-                units: v2.units,
-                struct: v2.struct.fields,
+            const debugReds = //GP.Util.createTextureDisplay(tinyReds.units, tinyReds.struct.fields, uniforms, redTexDim, 800, 100);
+                 new GP.VertexComputer({
+                units: tinyReds.units,
+                struct: tinyReds.struct.fields,
                 uniforms: uniforms,
                 renderStep: {
-                    viewport: {x: 800, y: 100, width: side * 3, height: side * 3},
-                    params: {tex: "sampler2D"},
-                    glsl: `
+                    viewport: {x: 800, y: 100, width: redTexDim * 3, height: redTexDim * 3},
+                    params: {debugTexture: "sampler2D"},
+                    glsl: GP.Util.dataTextureMacros+`
+                        #define TEX_WIDTH `+ redTexDim +`
                         void main() {
-                            vec2 pos = vec2(float(gl_VertexID / ` + side + `)/` + side + `.0, float(gl_VertexID % ` + side + `)/` + side + `.0) * 2.0 - 1.0;
-                            vertexColor = texture(u_tex, (pos + 1.0) / 2.0);
-                            gl_Position =  vec4(pos,1.0,1.0);
+                            vec4 pos = TEXTURE_POS(gl_VertexID,TEX_WIDTH);
+                            vertexColor = texture(u_debugTexture, (pos.xy + 1.0) / 2.0);
+                            gl_Position =  vec4(pos.xy,1.0,1.0);
                             gl_PointSize = 2.0;
                         }
                     `}
-            });
-            d2.setBuffers(v2.getBuffers());
+            }); 
+            debugReds.setBuffers(tinyReds.getBuffers());
 
             uniforms.accel = 0.001;
             
+            let watch = GP.Util.stopWatch();
             var cyclesPerLoop = 1;
-            var startTime = Date.now();
-            var computeTime = 0.0;
-            var cycleCount = 0;
-            var lastTime = Date.now();
             
             function loop() {
                 GP.Util.clear();
                 for (i=0;i<cyclesPerLoop;i++) {
-                    cycleCount++; 
-                    uniforms.time = Date.now() - lastTime; 
-                    lastTime = Date.now();
+                    uniforms.time = Date.now() - watch.lastTime; 
+                    watch.mark();
                     
-                    // One step of the process
-                    uniforms.tex2 = texOut;
-                    v.step();
-                    v1.step();
-                    v2.step();
-                    r2.step();
-                    uniforms.tex = v2.getResultTexture();
-                    d2.step();
-                    uniforms.tex = v1.getResultTexture();;
-                    d1.step();
+                    snowballs.step();
+                    particles.step();
+                    tinyReds.step();
+                    renderReds.step();
+                    uniforms.debugTexture = tinyReds.getResultTexture();
+                    debugReds.step();
+                    uniforms.debugTexture = particles.getResultTexture();
+                    debugParticles.step();
                     
-                    computeTime += Date.now() - lastTime;
-                    if (cycleCount % 100 === 0) {
-                        if (stats) stats.innerText = (cycleCount/((Date.now()-startTime)/1000)).toFixed(1)+" cycles/second "+(computeTime/cycleCount).toFixed(3)+" ms/cycle   cycles/loop="+cyclesPerLoop;
-                        startTime = Date.now();
-                        computeTime = 0.0;
-                        cycleCount = 0;
+                    if (watch.check() % 100 === 0) {
+                        if (stats) stats.innerText = watch.stats()+"   cycles/loop="+cyclesPerLoop;
+                        watch.reset();
                     }
                 }
                 GP.Util.GPControls(loop);

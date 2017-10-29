@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-	<title>WebGP - Rainbow Fountain</title>
+	<title>WebGP - Rainbow Cycles</title>
 	<meta charset="utf-8">
 </head>
 <body style="margin: 0; background-color: black;">
@@ -9,14 +9,17 @@
     <script src="../src/webgp.js"></script>
     <script>
         const canvas = document.querySelector("canvas");
-        canvas.width = window.innerWidth - 3;
-        canvas.height = window.innerHeight - 3;
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
 
         const GP = WebGP(canvas);
         
-        // Comment these to hide the log and controls
         let log = GP.Util.initializeHeadsUpLog();
         GP.Util.createShaderControls("GP");
+
+        let stats = document.createElement("paragraph");
+        stats.appendChild(document.createTextNode(""));
+        GP.Util.butdiv.appendChild(stats);
 
         // Create a vertex computer with ONE MILLION particles
         // this is a very simple example of a WebGP process
@@ -65,8 +68,32 @@
                 }
         });
                 
-        vc.run();  // the simplest way to run
-                        
+        //vc.run();  // the simplest way to run
+        
+        // This way controla the loop and collects and reports statistics
+        let watch = GP.Util.stopWatch();
+        var cyclesPerLoop = 2;
+
+        function loop() {
+            GP.Util.clear();
+            for (i=0;i<cyclesPerLoop;i++) {
+                watch.mark();
+
+                // Run the GPU program
+                vc.step();
+                
+                if (watch.check() % 100 === 0) {
+                    stats.innerText = watch.stats()+"  cycles/loop="+cyclesPerLoop;
+                    watch.reset();
+                }
+            }
+            GP.Util.GPControls(loop);
+        }
+
+        log("Starting the fountain...");
+        loop();   
+  
+                
     </script>
 </body>
 </html>
