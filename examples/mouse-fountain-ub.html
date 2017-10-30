@@ -18,18 +18,23 @@
         let log = GP.Util.initializeHeadsUpLog();
         GP.Util.createShaderControls("GP");
 
-        // Set up a uniform block that we can update as we need
+        // Set up a uniform block that we can update as we need 
+        // they will be available in the updateStep shader as u_name
         const uniformBlock = new GP.UniformBlock({
             struct: {
                 touchXY: "vec2",
-                mouseXY: "vec2"
+                mouseXY: "vec2",
+                time: "float"
             },
             initialize: {
                 touchXY: [0.0,0.0],
-                mouseXY: [0.0,0.0]
+                mouseXY: [0.0,0.0],
+                time: Date.now()
             }
         });
         
+        // When the mouse changes, update the data in the uniform block and write it to the GPU buffer
+        // can also use set({name: value}) to update just the CPU buffer and write() to write the whole uniform block buffer to the GPU
         window.addEventListener('mousemove', event => {
            uniformBlock.setWrite({ mouseXY: [event.clientX / canvas.width * 2.0 - 1.0, (event.clientY / canvas.height * 2.0 - 1.0) * -1.0 ] });           
         });
@@ -63,7 +68,7 @@
 
                 // update each unit using this shader code
                 // Note; make sure to assign all the outputs
-                updateStep: {
+                updateStep: {   // Note: params not needed if using a uniform block
                     glsl: `
                         void main() {
                             float dist = distance(i_position, u_mouseXY);

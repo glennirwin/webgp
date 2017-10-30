@@ -273,7 +273,7 @@ function WebGP(canvas, context) {
                     break;
                 case gl.TEXTURE_2D:  // override from alternate buffer if this is a texture we will be writing to
                     if (this.textureBuffers && val === this.textureBuffers[this.iteration % 2]) {
-                        console.error("warning: texture buffer flipped to avoid trying to read and write from same texture - you should look into this");
+                        console.error("warning: texture buffer flipped to avoid trying to read and write from same texture - you should look into this (check iterations)");
                         val = this.textureBuffers[(this.iteration - 1) % 2];  // avoid setting up to read from a texture we are about to write to
                     }  // this is because the iterations may have incremented in other steps without texture rewrite
                     gl.activeTexture(gl.TEXTURE0 + tc);
