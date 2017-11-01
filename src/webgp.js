@@ -573,8 +573,6 @@ function WebGP(canvas, context) {
                     #define TEXTURE_FETCH(t,v,w) texelFetch(t,TEXTURE_XY(v, w), 0)
             `,
 
-        logger: null,   // If set, will be called with messages
-
         clear() {  // Clear the display
             gl.clear(gl.COLOR_BUFFER_BIT);
         }, 
@@ -584,8 +582,6 @@ function WebGP(canvas, context) {
         data2d(units) {   // calculates the size of a side of a 2d square to hold the units in a texture
             return Math.round(Math.sqrt(units)) + 1;
         }, 
-
-        setLogger(l) { this.logger = l;},  // if set, will be called with messages
 
         buildDataTexture(width, height, data) {   // Remove once IntTexture is tested - shouldn't be needed
             // Create a texture to hold work data
@@ -719,7 +715,10 @@ function WebGP(canvas, context) {
         LOG_TEXT: ""+String.fromCharCode(13),
         logger(m) { console.log(m); },   // Default console logger
 
-        initializeHeadsUpLog() {
+
+        setLogger(l) { this.logger = l;},  // if set, will be called with messages
+
+      initializeHeadsUpLog() {
             // Heads up display of logging
             Util.logdiv = document.createElement("div");
             Util.logdiv.setAttribute("style", "position: absolute; top: 0; left: 0;");
@@ -742,7 +741,7 @@ function WebGP(canvas, context) {
             Util.SHOW_HUL = true;
             Util.logger = function(t) {
                 if (Util.SHOW_HUL) {
-                    Util.LOG_TEXT += String.fromCharCode(13)+t;
+                    Util.LOG_TEXT += t.length < 3 ? t : String.fromCharCode(13)+t;
                     Util.logelement.innerHTML = Util.LOG_TEXT;
                 } else {
                     console.log(t);
@@ -836,7 +835,7 @@ function WebGP(canvas, context) {
                     let data = JSON.parse(xmlhttp.responseText);
                     callback(null, data);
                 } catch(err) {
-                    callback(err.message + " in " + xmlhttp.responseText, data);
+                    callback(err.message + " in " + xmlhttp.responseText);
                 }
             } else {
                 if (xmlhttp.readyState == 4) {
