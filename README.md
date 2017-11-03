@@ -21,7 +21,7 @@ WebGP goes beyond WebGPGPU by allowing:
 * Both controls and heads up logging can be left out for silent production operation (log goes to console)
 * Fragment shaders can now be attached to the renderStep to a more rendering capability.  See the Shadertoy examples.
 
-* **[Example using new features](https://glennirwin.github.io/webgp/examples/index.html)**
+* **[List of examples using new features](https://glennirwin.github.io/webgp/examples/index.html)**
 
 
 * **[WebGPGPU Documentation](https://npny.github.io/webgpgpu/docs)**
