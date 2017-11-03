@@ -1,10 +1,39 @@
 <!DOCTYPE html>
 <html>
 <head>
-	<title>WebGPGPU - Examples</title>
+	<title>WebGP - Examples</title>
 	<meta charset="utf-8">
-	<meta http-equiv="refresh" content="0; url=rainbow-fountain/" />
+    <style>
+        a { color: hotpink; }
+    </style>
 </head>
-<body>
+<body  style="margin: 0; background-color: black; color: white;">
+    <script src="../src/webgp.js"></script>
+    <h1>WebGP Examples</h1>
+    <p> 
+        Welcome to the WebGP examples, to see the source or make a comment, go to the source page on <a href='https://github.com/glennirwin/webgp'>GitHub</a>
+    </p>
+    <ul>
+        <li><a href="rainbow-fountain.html">Rainbow fountain</a>  The simplest example with a million independent particles flying around</li>
+        <li><a href="rainbow-cycles.html">Rainbow Cycles</a>  The same rainbow with 2 cycles per render loop to speed it up </li>
+        <li><a href="mouse-fountain.html">Mouse fountain</a>  The green particles try to follow your mouse </li>
+        <li><a href="poly-fountain.html">Poly fountain</a>  Three vertex computers bouncing particles around with overlay textures to show the particle details </li>
+    </ul>
+    <br>
+    <h3>Latest feature - renderStep fragment shaders</h3>
+    <p>
+        Normally a default point is rendered by the default fragment shader attached to your renderStep, but you can now override the fragment shader with your own
+        and do stunning graphics like those found at the <a href="http://www.shadertoy.com/">www.Shadertoy.com</a> website.  Here's a few of the Shadertoy scripts driven by WebGP.
+        <br>
+        <br>
+        The examples below create a two triangle vertex array with 6 points (to draw a rectangle) and then sends it through a fragment shader to
+        show how you can even use this library to do cool graphics using WebGP with WebGL2.
+    </p>  
+    <ul>
+        <li><a href="shadertoy-ocean.html">Shadertoy Ocean</a>  I don't understand all the math, but this looks so awesome<br>"Seascape" by Alexander Alekseev aka TDM - 2014</li>
+        <li><a href="shadertoy-sky.html">Shadertoy Sky</a> Flying without the air sickness<br>Created by inigo quilez - iq/2013</li>
+        <li><a href="shadertoy-star.html">Shadertoy Star</a> A flaming star, drag with mouse to rotate it<br>Panteleymonov A K 2015   https://www.shadertoy.com/view/4lfSzS</li>
+        <li><a href="shadertoy-plasma.html">Shadertoy Plasma</a> A plasma ball that looks cool and won't shock you<br>Plasma Globe by nimitz (twitter: @stormoid)</li>
+    </ul>
 </body>
 </html>

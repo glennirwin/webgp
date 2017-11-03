@@ -18,6 +18,8 @@ function WebGP(canvas, context) {
      class VertexComputer {
         constructor(description) {
 
+            this.primitiveType = description.type || gl.POINTS;  // Default of points makes sense for computation
+
             if (description.vertexArray) {  // Use a pre-defined VertexArray object (copies its attributes/structure, shares the buffer)
                 this.units = description.vertexArray.units;
                 this.struct = { fields: description.vertexArray.struct.fields, layout: description.vertexArray.struct.layout };
@@ -106,9 +108,20 @@ function WebGP(canvas, context) {
 
             // Render step is optional, so just update
             if (description.renderStep) {
+                let uniformBlocks = "";
+                if (this.uniformBlock) {
+                    uniformBlocks = "\nlayout(std140) uniform ublock {\n" 
+                            + Util.declarationList("", Util.prefixKeys("u_", this.uniformBlock.struct.fields))
+                            + "\n}"+(this.uniformBlock.name ? this.uniformBlock.name : "")+";\n";
+                }
                 this.renderUniforms = description.renderStep.params;
                 this.renderViewport = description.renderStep.viewport;
                 this.renderShaderCode = description.renderStep.glsl;
+                this.renderFragCode = description.renderStep.fragment ? uniformBlocks + description.renderStep.fragment : `void main() { fragColor = vertexColor;}`;
+                this.renderFragUniforms = description.renderStep.fragmentParams; // || {vertexColor: "vec4"};
+                this.renderFragIn = description.renderStep.fragmentIn || {vertexColor: "vec4"};
+                this.renderFragOut = description.renderStep.fragmentOut || {fragColor: "vec4"};
+                
                 this.renderProgram = Util.buildProgram(
                     // Takes in unit struct and outputs vertexColor
                     Util.buildShader(
@@ -118,8 +131,14 @@ function WebGP(canvas, context) {
                         {vertexColor: "vec4"},
                         this.renderShaderCode
                     ),
-                    // Default pass-through fragment shader (we're simply drawing points, color is set in the vertex shader)
-                    Util.buildShader(gl.FRAGMENT_SHADER, {}, {vertexColor: "vec4"}, {fragColor: "vec4"}, `void main() { fragColor = vertexColor;}`)
+                    // Use given fragment shader or Default pass-through fragment shader (we're simply drawing points, color is set in the vertex shader)
+                    Util.buildShader(
+                        gl.FRAGMENT_SHADER, 
+                        Util.prefixKeys("u_", this.renderFragUniforms), 
+                        this.renderFragIn, 
+                        this.renderFragOut, 
+                        this.renderFragCode
+                    )
                 );
                 if (this.renderProgram) {
                     Object.keys(this.struct.fields).map((name, i) => gl.bindAttribLocation(this.renderProgram, i, "i_" + name));
@@ -134,6 +153,8 @@ function WebGP(canvas, context) {
                     }
                     // Get uniform locations (note, if not used in the code, the uniform location will return null but this seems to be ok)
                     if (this.renderUniforms) this.renderUniformLocations = Object.entries(this.renderUniforms).reduce((o, [k, v]) => (Object.assign(o, {[k]: gl.getUniformLocation(this.renderProgram, "u_" + k)})), {});
+                    // Get fragment uniform locations (note, if not used in the code, the uniform location will return null but this seems to be ok)
+                    if (this.renderFragUniforms) this.renderFragUniformLocations = Object.entries(this.renderFragUniforms).reduce((o, [k, v]) => (Object.assign(o, {[k]: gl.getUniformLocation(this.renderProgram, "u_" + k)})), {});
                 }
             }
 
@@ -211,8 +232,8 @@ function WebGP(canvas, context) {
 
             // Run each unit through the Update
             for (let i = 0; i < (steps || 1); i++) {
-                gl.beginTransformFeedback(gl.POINTS);
-                gl.drawArrays(gl.POINTS, 0, this.units);
+                gl.beginTransformFeedback(this.primitiveType);
+                gl.drawArrays(this.primitiveType, 0, this.units);
                 gl.endTransformFeedback();
             }
 
@@ -233,6 +254,11 @@ function WebGP(canvas, context) {
         render(source) {
             if (this.renderViewport) gl.viewport(this.renderViewport.x, this.renderViewport.y, this.renderViewport.width, this.renderViewport.height);
             
+            // Bind any uniform buffers
+            if (this.uniformBlock) {
+                gl.bindBufferBase(gl.UNIFORM_BUFFER, 0, this.uniformBlock.buffer);
+            }
+
             // Setup context
             gl.useProgram(this.renderProgram);
             gl.bindVertexArray(source.vertexArray);
@@ -242,12 +268,14 @@ function WebGP(canvas, context) {
 
             // Set uniforms
             if (this.renderUniformLocations) { let tc = 0; Object.entries(this.renderUniforms).forEach(([k, v]) => (tc = this.setUniform(tc, k, v, this.renderUniformLocations[k], this.uniforms[k]))); }
+            if (this.renderFragUniformLocations) { let tc = 0; Object.entries(this.renderFragUniforms).forEach(([k, v]) => (tc = this.setUniform(tc, k, v, this.renderFragUniformLocations[k], this.uniforms[k]))); }
 
             // Render each unit
-            gl.drawArrays(gl.POINTS, 0, this.units);
+            gl.drawArrays(this.primitiveType, 0, this.units);
 
             // Restore context
             gl.useProgram(null);
+            if (this.uniformBlock) gl.bindBuffer(gl.UNIFORM_BUFFER, null);
             gl.disable(gl.BLEND);
             gl.bindBuffer(gl.ARRAY_BUFFER, null);
             
@@ -618,6 +646,17 @@ function WebGP(canvas, context) {
         return texture;
       },
 
+        buildImageTexture(image) {   // Create a texture to hold an image
+            const texture = gl.createTexture();
+            gl.bindTexture(gl.TEXTURE_2D, texture);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+            return texture;
+        },
+
         buildVertexBuffer(struct, bufferData) {
             if (!bufferData) {
                 let error = new Error("call to build vertex buffer with no initial data");
@@ -869,5 +908,5 @@ function WebGP(canvas, context) {
 };  // End Util class
 
  
-    return {VertexComputer, VertexArray, UniformBlock, Util};
+    return {VertexComputer, VertexArray, UniformBlock, Util, gl};
 }

@@ -19,15 +19,13 @@ WebGP goes beyond WebGPGPU by allowing:
 * Debug controls for Stop, Go, Step, Slow can be added with Util.createShaderControls("GP") and calling Util.GPControls(loop) in your render loop
 * enable simple heads up logging with const log = Util.initializeHeadsUpLog()  - will show on a textarea overlay, a function is returned to allow you to pass messages to the log as in log("Hello World")
 * Both controls and heads up logging can be left out for silent production operation (log goes to console)
+* Fragment shaders can now be attached to the renderStep to a more rendering capability.  See the Shadertoy examples.
 
-* **[Example using new features](https://glennirwin.github.io/webgp/examples/poly-fountain.html)**
+* **[Example using new features](https://glennirwin.github.io/webgp/examples/index.html)**
 
-
-
-* **[Updated WebGPGPU Example](https://glennirwin.github.io/webgp/examples/rainbow-fountain.html)**
 
 * **[WebGPGPU Documentation](https://npny.github.io/webgpgpu/docs)**
-WebGP documentation coming soon
+WebGP documentation coming soon once things settle down a bit
 
 * **[Download](https://rawgit.com/glennirwin/webgp/master/src/webgp.js)**
 
@@ -36,7 +34,7 @@ WebGP documentation coming soon
 ## Examples ##
 
 ```javascript
-const GP = WebGP(context);
+const GP = WebGP(canvas);
 const vc = new GP.VertexComputer({
 
 	units: 1e6,
@@ -98,7 +96,7 @@ In order to use WebGP in your page, you then need to initialize it with a canvas
 	const GP = WebGP(canvas);
 
 	// Let's get rolling
-	new GP.VertexComputer({ units: 1, .... });
+	new GP.VertexComputer({ units: 1, .... }).run();
 </script>
 ```
 
