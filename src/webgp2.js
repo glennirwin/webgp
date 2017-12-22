@@ -1,9 +1,9 @@
 // WEBGP - a simple library for WEBGL2 computing, visualization, and interactivity
 function WebGP(canvas, context) {
     "use strict";
-    
-    if (!context) { context = canvas.getContext("webgl2", {antialias: false} );       
-        if (!context) throw "Invalid GL context - browser probably doesn't support WebGL2";            
+
+    if (!context) { context = canvas.getContext("webgl2", {antialias: false} );
+        if (!context) throw "Invalid GL context - browser probably doesn't support WebGL2";
     }
     const gl = context;
 
@@ -42,6 +42,11 @@ function WebGP(canvas, context) {
                 this.uniforms = description.uniforms;
             }
 
+            // array of UniformBuffer object to use for uniforms
+            if (description.uniformBlocks) {
+                this.uniformBlocks = description.uniformBlocks;
+            }
+
             // pointer to a UniformBuffer object to use for uniforms
             if (description.uniformBlock) {
                 this.uniformBlock = description.uniformBlock;
@@ -58,9 +63,16 @@ function WebGP(canvas, context) {
                 this.updateUniforms = description.updateStep.params;
                 let uniformBlocks = "";
                 if (this.uniformBlock) {
-                    uniformBlocks = "\nlayout(std140) uniform ublock {\n" 
+                    uniformBlocks = "\nlayout(std140) uniform ublock {\n"
                             + Util.declarationList("", Util.prefixKeys("u_", this.uniformBlock.struct.fields))
                             + "\n}"+(this.uniformBlock.name ? this.uniformBlock.name : "")+";\n";
+                }
+                if (this.uniformBlocks) {
+                    uniformBlocks = this.uniformBlocks.map((b,i) =>
+                            "\nlayout(std140) uniform ublocks"+i+" {\n"
+                            + Util.declarationList("", Util.prefixKeys("u_", b.struct.fields))
+                            + "\n}"+(b.name ? b.name : "")
+                          ).join("\n\n")+";\n";
                 }
                 this.updateShaderCode = description.updateStep.glsl;
                 let ofields = Util.prefixKeys("o_", this.struct.fields);  // so we can add one for texture out if needed
@@ -81,7 +93,7 @@ function WebGP(canvas, context) {
                         ));
                 if (this.updateProgram) {
                     Object.keys(this.struct.fields).map((name, i) => gl.bindAttribLocation(this.updateProgram, i, "i_" + name));
-                    gl.transformFeedbackVaryings(this.updateProgram, Object.keys(this.struct.fields).map(name => "o_" + name), gl.INTERLEAVED_ATTRIBS);                    
+                    gl.transformFeedbackVaryings(this.updateProgram, Object.keys(this.struct.fields).map(name => "o_" + name), gl.INTERLEAVED_ATTRIBS);
                     gl.linkProgram(this.updateProgram);
                     if (!gl.getProgramParameter(this.updateProgram, gl.LINK_STATUS)) {
                         let log = gl.getProgramInfoLog(this.updateProgram);
@@ -95,13 +107,16 @@ function WebGP(canvas, context) {
                     if (this.updateUniforms) {
                         this.updateUniformLocations = Object.entries(this.updateUniforms).reduce((o, [k, v]) => (Object.assign(o, {[k]: gl.getUniformLocation(this.updateProgram, "u_" + k)})), {});
                     }
- 
+
                     // If a uniform block is being used, get its index and bind it
                     if (this.uniformBlock) {
-                        this.updateUniformBlockIndex = gl.getUniformBlockIndex(this.updateProgram,"ublock");
-                        gl.uniformBlockBinding(this.updateProgram, this.updateUniformBlockIndex, 0);
+                        gl.uniformBlockBinding(this.updateProgram, gl.getUniformBlockIndex(this.updateProgram,"ublock"), 0);
                     }
-                    
+                    // If uniform blocks are being used, get its index and bind it
+                    if (this.uniformBlocks) {
+                      this.uniformBlocks.map((b,i) => gl.uniformBlockBinding(this.updateProgram, gl.getUniformBlockIndex(this.updateProgram,"ublocks"+i), i) );
+                    }
+
                     this.transformFeedback = gl.createTransformFeedback();
                 }
             }
@@ -110,9 +125,16 @@ function WebGP(canvas, context) {
             if (description.renderStep) {
                 let uniformBlocks = "";
                 if (this.uniformBlock) {
-                    uniformBlocks = "\nlayout(std140) uniform ublock {\n" 
+                    uniformBlocks = "\nlayout(std140) uniform ublock {\n"
                             + Util.declarationList("", Util.prefixKeys("u_", this.uniformBlock.struct.fields))
                             + "\n}"+(this.uniformBlock.name ? this.uniformBlock.name : "")+";\n";
+                }
+                if (this.uniformBlocks) {
+                    uniformBlocks = this.uniformBlocks.map((b,i) =>
+                            "\nlayout(std140) uniform ublocks"+i+" {\n"
+                            + Util.declarationList("", Util.prefixKeys("u_", b.struct.fields))
+                            + "\n}"+(b.name ? b.name : "")
+                          ).join("\n\n")+";\n";
                 }
                 this.renderUniforms = description.renderStep.params;
                 this.renderViewport = description.renderStep.viewport;
@@ -121,7 +143,7 @@ function WebGP(canvas, context) {
                 this.renderFragUniforms = description.renderStep.fragmentParams; // || {vertexColor: "vec4"};
                 this.renderFragIn = description.renderStep.fragmentIn || {vertexColor: "vec4"};
                 this.renderFragOut = description.renderStep.fragmentOut || {fragColor: "vec4"};
-                
+
                 this.renderProgram = Util.buildProgram(
                     // Takes in unit struct and outputs vertexColor
                     Util.buildShader(
@@ -133,10 +155,10 @@ function WebGP(canvas, context) {
                     ),
                     // Use given fragment shader or Default pass-through fragment shader (we're simply drawing points, color is set in the vertex shader)
                     Util.buildShader(
-                        gl.FRAGMENT_SHADER, 
-                        Util.prefixKeys("u_", this.renderFragUniforms), 
-                        this.renderFragIn, 
-                        this.renderFragOut, 
+                        gl.FRAGMENT_SHADER,
+                        Util.prefixKeys("u_", this.renderFragUniforms),
+                        this.renderFragIn,
+                        this.renderFragOut,
                         this.renderFragCode
                     )
                 );
@@ -158,10 +180,13 @@ function WebGP(canvas, context) {
 
                     // If a uniform block is being used, get its index and bind it
                     if (this.uniformBlock) {
-                        this.updateUniformBlockIndex = gl.getUniformBlockIndex(this.renderProgram,"ublock");
-                        gl.uniformBlockBinding(this.renderProgram, this.updateUniformBlockIndex, 0);
+                        gl.uniformBlockBinding(this.renderProgram, gl.getUniformBlockIndex(this.renderProgram, "ublock"), 0);
                     }
-}
+                    // If uniform blocks are being used, get its index and bind it
+                    if (this.uniformBlocks) {
+                        this.uniformBlocks.map((b, i) => gl.uniformBlockBinding(this.renderProgram, gl.getUniformBlockIndex(this.renderProgram, "ublocks" + i), i));
+                    }
+                }
             }
 
             // if initialize: Call it for every unit sub-buffer
@@ -213,7 +238,7 @@ function WebGP(canvas, context) {
            }
            this.iteration = 0;
         }
-        
+
         update(source, destination, textureBuffers, steps) {
             // Setup context
             gl.useProgram(this.updateProgram);
@@ -222,6 +247,9 @@ function WebGP(canvas, context) {
             if (this.uniformBlock) {
                 gl.bindBufferBase(gl.UNIFORM_BUFFER, 0, this.uniformBlock.buffer);
             }
+            if (this.uniformBlocks) {
+              this.uniformBlocks.map((b,i) => gl.bindBufferBase(gl.UNIFORM_BUFFER, i, this.uniformBlocks[i]) );
+            }
 
             // Bind source and destination buffers
             gl.bindVertexArray(source.vertexArray);
@@ -229,7 +257,6 @@ function WebGP(canvas, context) {
             gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, this.transformFeedback);
             gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 0, destination.vertexBuffer);
 
-            
             // Set uniforms
             if (this.updateUniformLocations) { let tc = 0; Object.entries(this.updateUniforms).forEach(([k, v]) => (tc = this.setUniform(tc, k, v, this.updateUniformLocations[k], this.uniforms[k]))); }
 
@@ -253,23 +280,25 @@ function WebGP(canvas, context) {
             // Restore context and cleanup
             if (this.textureOut) {
                 gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
-                gl.viewport(0, 0, gl.canvas.clientWidth, gl.canvas.clientHeight);
+                gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
             } else {
                 gl.disable(gl.RASTERIZER_DISCARD);
             }
             gl.useProgram(null);
-            if (this.uniformBlock) gl.bindBuffer(gl.UNIFORM_BUFFER, null);
+            if (this.uniformBlock || this.uniformBlocks) gl.bindBuffer(gl.UNIFORM_BUFFER, null);
             gl.bindBuffer(gl.ARRAY_BUFFER, null);
             gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 0, null);
             gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, null);
+            gl.bindVertexArray(null);
         }
-        
+
         render(source) {
-            if (this.renderViewport) gl.viewport(this.renderViewport.x, this.renderViewport.y, this.renderViewport.width, this.renderViewport.height);
-            
             // Bind any uniform buffers
             if (this.uniformBlock) {
                 gl.bindBufferBase(gl.UNIFORM_BUFFER, 0, this.uniformBlock.buffer);
+            }
+            if (this.uniformBlocks) {
+              this.uniformBlocks.map((b,i) => gl.bindBufferBase(gl.UNIFORM_BUFFER, i, this.uniformBlocks[i]) );
             }
 
             // Setup context
@@ -288,13 +317,12 @@ function WebGP(canvas, context) {
 
             // Restore context
             gl.useProgram(null);
-            if (this.uniformBlock) gl.bindBuffer(gl.UNIFORM_BUFFER, null);
+            if (this.uniformBlock || this.uniformBlocks) gl.bindBuffer(gl.UNIFORM_BUFFER, null);
             gl.disable(gl.BLEND);
             gl.bindBuffer(gl.ARRAY_BUFFER, null);
-            
-            if (this.renderViewport) gl.viewport(0, 0, gl.canvas.clientWidth, gl.canvas.clientHeight);
+            gl.bindVertexArray(null);
         }
-        
+
         setUniform(tc, name, type, loc, val) {  // tc = texture count - will increment for each texture
             if (val === undefined) {
                 let error = "can't set uniform "+name+" of type " + type + " with value " + val;
@@ -338,13 +366,13 @@ function WebGP(canvas, context) {
             }
             return tc;
         }
-        
+
         run() {  // run in loop forever
             Util.clear();
             this.step();
             Util.GPControls(this.run.bind(this));
         }
-        
+
         step(iteration) {  // run a single step - Use each buffer alternatively on each step (send iteration to coordinate shared buffers)
             if (iteration) this.iteration = iteration;
             if (!this.vertexBuffers) {
@@ -383,15 +411,24 @@ function WebGP(canvas, context) {
             gl.bindBuffer(gl.ARRAY_BUFFER, null);
             return new DataView(vb.data);
         }
-         getResultUnitDataView(index) {  // Copy a unit from the result buffer to a dataview
-             let vb = this.getResultBuffer();
-             let off = index * this.struct.byteSize;  // Offset to the unit data
-             let a = new ArrayBuffer(this.struct.byteSize);
-             gl.bindBuffer(gl.ARRAY_BUFFER, vb.vertexBuffer);
-             gl.getBufferSubData(gl.ARRAY_BUFFER, off, new Uint8Array(a));
-             gl.bindBuffer(gl.ARRAY_BUFFER, null);
-             return new DataView(a);
-         }
+        getResultUnitDataView(index) {  // Copy a unit from the result buffer to a dataview
+            let vb = this.getResultBuffer();
+            let off = index * this.struct.byteSize;  // Offset to the unit data
+            let a = new ArrayBuffer(this.struct.byteSize);
+            gl.bindBuffer(gl.ARRAY_BUFFER, vb.vertexBuffer);
+            gl.getBufferSubData(gl.ARRAY_BUFFER, off, new Uint8Array(a));
+            gl.bindBuffer(gl.ARRAY_BUFFER, null);
+            return new DataView(a);
+        }
+  /*      getNextUnitDataView(index) {  // Copy a unit from the result buffer to a dataview
+            let vb = this.getNextBuffer();
+            let off = index * this.struct.byteSize;  // Offset to the unit data
+            let a = new ArrayBuffer(this.struct.byteSize);
+            gl.bindBuffer(gl.ARRAY_BUFFER, vb.vertexBuffer);
+            gl.getBufferSubData(gl.ARRAY_BUFFER, off, new Uint8Array(a));
+            gl.bindBuffer(gl.ARRAY_BUFFER, null);
+            return new DataView(a);
+        } */
          getResultUnit(index) {  // Copy the unit from the result buffer into an object
              return this.getUnit(this.getResultUnitDataView(index),0);
          }
@@ -416,9 +453,22 @@ function WebGP(canvas, context) {
              this.struct.layout.map(f => { if (newdata.hasOwnProperty(f.field)) { f.setFunction(cunit, f.offset, newdata[f.field]); } });
              // write the unit to the next buffer
              let off = index * this.struct.byteSize;  // Offset to the unit data
-             gl.bindBuffer(gl.ARRAY_BUFFER, this.getNextBuffer().vertexBuffer);
+             gl.bindBuffer(gl.ARRAY_BUFFER, this.getResultBuffer().vertexBuffer);
              gl.bufferSubData(gl.ARRAY_BUFFER, off, cunit);
              gl.bindBuffer(gl.ARRAY_BUFFER, null);
+         }
+
+         copyUnitToBlock(unit,block) {  // Populate a uniform block with a unit
+           //console.log("copying "+this.struct.byteSize+" into "+block.struct.byteSize);
+           if (this.struct.byteSize > block.struct.byteSize) {
+             console.log("too big to fit "+this.struct.byteSize+" into "+block.struct.byteSize);
+           } else {
+             gl.bindBuffer(gl.ARRAY_BUFFER, this.getResultBuffer().vertexBuffer);
+             gl.bindBuffer(gl.UNIFORM_BUFFER, block.buffer);
+             gl.copyBufferSubData(gl.ARRAY_BUFFER,gl.UNIFORM_BUFFER,unit*this.struct.byteSize,0,this.struct.byteSize);
+             gl.bindBuffer(gl.ARRAY_BUFFER, null);
+             gl.bindBuffer(gl.UNIFORM_BUFFER, null);
+           }
          }
 
          destroy() {
@@ -476,12 +526,12 @@ function WebGP(canvas, context) {
     }
 
     // Object to wrap a uniform buffer so we can maintain its data and share them amongst computers
-    // Be wary of byte packing, 
+    // Be wary of byte packing,
     class UniformBlock {
         constructor(description) {
             // If name is defined, then shader references to the uniforms must be prefixed by it as in name.x
             if (description.name) this.name = description.name;
-            
+
             this.struct = {
                 fields: description.struct,
                 layout: Object.entries(description.struct).map(([field, type], i) => Object.assign({field: field}, Util.glTypes[type]))
@@ -506,27 +556,29 @@ function WebGP(canvas, context) {
                 gl.bufferData(gl.UNIFORM_BUFFER, this.data, gl.DYNAMIC_DRAW);
                 gl.bindBuffer(gl.UNIFORM_BUFFER, null);
             }
-            
+
             // Update one or more values in the buffer (does not need to update all of them and the buffer is not written to the GPU)
             this.set = function(newdata) {  // newdata is an object with the properties to be updated
                 this.struct.layout.map(f => { if (newdata.hasOwnProperty(f.field)) { f.setFunction(this.dataview, f.offset, newdata[f.field]); } });
+                return this;
             };
 
-            // Updates each property and write only its data in the buffer 
+            // Updates each property and write only its data in the buffer
             // useful if your buffer is really big and you only want to update a single value
-            this.setWrite = function(newdata) {  
+            this.setWrite = function(newdata) {
                 gl.bindBuffer(gl.UNIFORM_BUFFER, this.buffer);
-                this.struct.layout.map(f => { 
-                    if (newdata.hasOwnProperty(f.field)) { 
-                        f.setFunction(this.dataview, f.offset, newdata[f.field]); 
+                this.struct.layout.map(f => {
+                    if (newdata.hasOwnProperty(f.field)) {
+                        f.setFunction(this.dataview, f.offset, newdata[f.field]);
                         gl.bufferSubData(gl.UNIFORM_BUFFER, f.offset, this.dataview, f.offset, f.bytes);
-                    } 
+                    }
                 });
                 gl.bindBuffer(gl.UNIFORM_BUFFER, null);
+                return this;
             };
 
             // write all the buffer data to the uniform buffer
-            this.write = function() { 
+            this.write = function() {
                 gl.bindBuffer(gl.UNIFORM_BUFFER, this.buffer);
                 gl.bufferSubData(gl.UNIFORM_BUFFER, 0, this.data);
                 gl.bindBuffer(gl.UNIFORM_BUFFER, null);
@@ -565,6 +617,12 @@ function WebGP(canvas, context) {
             , dataview.getFloat32(foffset + 8, littleEndian)
             , dataview.getFloat32(foffset + 12,littleEndian)];
     }
+    function getMat4Field(dataview, foffset) {
+        return [dataview.getFloat32(foffset, littleEndian)
+            , dataview.getFloat32(foffset + 4, littleEndian)
+            , dataview.getFloat32(foffset + 8, littleEndian)
+            , dataview.getFloat32(foffset + 12,littleEndian)];
+    }
 
     // Handy functions to set data in a dataview
     function setIntField(dataview, foffset, val) {
@@ -588,12 +646,19 @@ function WebGP(canvas, context) {
         dataview.setFloat32(foffset + 8, val[2], littleEndian);
         dataview.setFloat32(foffset + 12, val[3], littleEndian);
     }
+    function setMat4Field(dataview, foffset, val) {
+        dataview.setFloat32(foffset, val[0], littleEndian);
+        dataview.setFloat32(foffset + 4, val[1], littleEndian);
+        dataview.setFloat32(foffset + 8, val[2], littleEndian);
+        dataview.setFloat32(foffset + 12, val[3], littleEndian);
+    }
 
     const Util = {
 
         // Define types used in VertexArrays and Uniforms  (Note: not all have been tested, only the float vectors, float, int, and sampler2D have been tested)
         glTypes: {
-            "vec4": {literal: "vec4", constant: gl.FLOAT_VEC4, slotType: gl.FLOAT, slots: 4, bytes: 16, qualifier: "", getFunction: getVec4Field, setFunction: setVec4Field },
+          "mat4": {literal: "mat4", constant: gl.FLOAT_MAT4, slotType: gl.FLOAT, slots: 4, bytes: 64, qualifier: "", getFunction: getMat4Field, setFunction: setMat4Field },
+          "vec4": {literal: "vec4", constant: gl.FLOAT_VEC4, slotType: gl.FLOAT, slots: 4, bytes: 16, qualifier: "", getFunction: getVec4Field, setFunction: setVec4Field },
             "vec3": {literal: "vec3", constant: gl.FLOAT_VEC3, slotType: gl.FLOAT, slots: 3, bytes: 12, qualifier: "", getFunction: getVec3Field, setFunction: setVec3Field },
             "vec2": {literal: "vec2", constant: gl.FLOAT_VEC2, slotType: gl.FLOAT, slots: 2, bytes: 8, qualifier: "", getFunction: getVec2Field, setFunction: setVec2Field },
             "float": {literal: "float", constant: gl.FLOAT, slotType: gl.FLOAT, slots: 1, bytes: 4, qualifier: "", getFunction: getFloatField, setFunction: setFloatField },
@@ -616,17 +681,17 @@ function WebGP(canvas, context) {
 
         clear() {  // Clear the display
             gl.clear(gl.COLOR_BUFFER_BIT);
-        }, 
-        
+        },
+
         flush() { gl.flush(); },
-        
+
         data2d(units) {   // calculates the size of a side of a 2d square to hold the units in a texture
             return Math.round(Math.sqrt(units)) + 1;
-        }, 
+        },
 
         // common 2 triangle full viewport buffer of 6 points describing 2 triangles
         quadBuffer() { return new Float32Array([-1,-1,1,-1,-1,1,-1,1,1,-1,1,1]).buffer; },
-        
+
         buildDataTexture(width, height, data) {   // Remove once IntTexture is tested - shouldn't be needed
             // Create a texture to hold work data
             const texture = gl.createTexture();
@@ -690,12 +755,21 @@ function WebGP(canvas, context) {
             gl.bufferData(gl.ARRAY_BUFFER, bufferData, gl.DYNAMIC_DRAW);
 
             // Set the VAO to the same bytewise layout as the struct
+            let loc = 0;
             struct.layout.map((field, i) => {
-                gl.enableVertexAttribArray(i);
-                if (field.slotType === gl.INT) {
-                  gl.vertexAttribIPointer(i, field.slots, field.slotType, struct.byteSize, field.offset);
+                gl.enableVertexAttribArray(loc);
+                if (field.literal === "mat4") {
+                  gl.vertexAttribPointer(loc++, field.slots, field.slotType, false, struct.byteSize, field.offset);
+                  gl.enableVertexAttribArray(loc);
+                  gl.vertexAttribPointer(loc++, field.slots, field.slotType, false, struct.byteSize, field.offset + 16);
+                  gl.enableVertexAttribArray(loc);
+                  gl.vertexAttribPointer(loc++, field.slots, field.slotType, false, struct.byteSize, field.offset + 32);
+                  gl.enableVertexAttribArray(loc);
+                  gl.vertexAttribPointer(loc++, field.slots, field.slotType, false, struct.byteSize, field.offset + 48);
+                } else if (field.slotType === gl.INT) {
+                  gl.vertexAttribIPointer(loc++, field.slots, field.slotType, struct.byteSize, field.offset);
                 } else {
-                  gl.vertexAttribPointer(i, field.slots, field.slotType, false, struct.byteSize, field.offset);
+                  gl.vertexAttribPointer(loc++, field.slots, field.slotType, false, struct.byteSize, field.offset);
                 }
             });
             return {vertexArray: vertexArray, vertexBuffer: vertexBuffer, data: bufferData};
@@ -715,7 +789,7 @@ function WebGP(canvas, context) {
             });
             return prefixedMap;
         },
-    
+
         buildShader(type, uniforms, inputs, outputs, code) {
             // Merge a GLSL header, declarations, and main code into a single source
             const source = `
@@ -740,14 +814,15 @@ function WebGP(canvas, context) {
             if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
                 let log = gl.getShaderInfoLog(shader);
                 if (log.length > 0) {
-                    let error = "buildShader error: \n"+(type === gl.VERTEX_SHADER ? "Vertex" : type === gl.FRAGMENT_SHADER ? "Fragment" : "???") + " shader.COMPILE_STATUS src=\n" + source + "\nError="+log;
+                    let error = "buildShader error: \n"+(type === gl.VERTEX_SHADER ? "Vertex" : type === gl.FRAGMENT_SHADER ? "Fragment" : "???") + " shader.COMPILE_STATUS Error="+log;
                     if (Util.logger) Util.logger(error); else console.error(error);
+                    console.error("Shader source:\n" + source.split("\n").map((l,n) => (n+1) + "\t" + l).join("\n"));
                     throw error;
                 }
             }
             return shader;
         },
-        
+
         buildProgram(vertexShader, fragmentShader) {
             // Merge one vertex shader and one fragment shader into a program
             const program = gl.createProgram();
@@ -776,14 +851,14 @@ function WebGP(canvas, context) {
       initializeHeadsUpLog() {
             // Heads up display of logging
             Util.logdiv = document.createElement("div");
-            Util.logdiv.setAttribute("style", "position: absolute; top: 0; left: 0;");
+            Util.logdiv.setAttribute("style", "position: absolute; top: 0; left: 0; ");
             Util.logelement = document.createElement("textarea");
             Util.logelement.setAttribute("readonly", true);
             Util.logelement.setAttribute("rows", "40");
             Util.logelement.setAttribute("cols", "150");
             Util.logelement.setAttribute("width", "100%");
             Util.logelement.setAttribute("height", "100%");
-            Util.logelement.setAttribute("style", " white-space: pre-line; background-color: transparent; color: white; font-size: 8pt; border: none; outline: none;");
+            Util.logelement.setAttribute("style", " white-space: pre-line; background-color: transparent; color: white; font-size: 8pt; border: none; outline: none; user-select: none; cursor: pointer;");
             Util.logelement.appendChild(document.createTextNode(""));
             Util.logdiv.appendChild(Util.logelement);
             document.body.appendChild(Util.logdiv);
@@ -905,7 +980,7 @@ function WebGP(canvas, context) {
     // A handy object to monitor the time spent doing things
     // call mark() to start timing a cycle, and check() to stop and accumulate time
     // cps() returns cycles/second, mpc() returns milliseconds/cycle
-    // 
+    //
     stopWatch() {
             return {
                 startTime: Date.now(),
@@ -920,9 +995,9 @@ function WebGP(canvas, context) {
                 stats: function() { return this.cps().toFixed(1)+" cycles/second "+this.mpc().toFixed(3)+" ms/cycle "; }
             };
     }
- 
+
 };  // End Util class
 
- 
+
     return {VertexComputer, VertexArray, UniformBlock, Util, gl};
 }
