@@ -4,13 +4,13 @@
 	<title>WebGP - Examples</title>
 	<meta charset="utf-8">
     <style>
-        a { color: hotpink; }
+        a { color: lightblue; }
     </style>
 </head>
 <body  style="margin: 0; background-color: black; color: white;">
     <script src="../src/webgp.js"></script>
     <h1>WebGP Examples</h1>
-    <p> 
+    <p>
         Welcome to the WebGP examples, to see the source or make a comment, go to the source page on <a href='https://github.com/glennirwin/webgp'>GitHub</a>
     </p>
     <ul>
@@ -26,12 +26,20 @@
         and do stunning graphics like those found at the <a href="http://www.shadertoy.com/">www.Shadertoy.com</a> website.  Here's a few of the Shadertoy scripts driven by WebGP.
         The examples below create a two triangle vertex array with 6 points (to draw a rectangle) and then sends it through a fragment shader to
         show how you can even use this library to do cool graphics using WebGP with WebGL2.
-    </p>  
+    </p>
     <ul>
         <li><a href="shadertoy-ocean.html">Shadertoy Ocean</a> - I don't understand all the math, but this looks so awesome<br>"Seascape" by Alexander Alekseev aka TDM - 2014</li>
         <li><a href="shadertoy-sky.html">Shadertoy Sky</a> - Flying without the air sickness<br>Created by inigo quilez - iq/2013</li>
         <li><a href="shadertoy-star.html">Shadertoy Star</a> - A flaming star, drag with mouse to rotate it<br>Panteleymonov A K 2015   https://www.shadertoy.com/view/4lfSzS</li>
         <li><a href="shadertoy-plasma.html">Shadertoy Plasma</a> - A plasma ball that looks cool and won't shock you<br>Plasma Globe by nimitz (twitter: @stormoid)</li>
+    </ul>
+		<h3>and one more thing...</h3>
+    <p>
+        How about an experimental shader viewport manager?  This lets you run multiple real time shaders in independent 'windows' in the WebGL canvas.  A single WebGP VertexComputer
+				is used to process all the viewports in parallel so there is very low overhead and its also less than 400 lines of code!  The controls are designed to be intuitive so figure it out.
+    </p>
+    <ul>
+        <li><a href="WebGP-vm.html">WebGP VM</a> - A shader window/viewport manager<br>by glenn@irwinideas.com 2017</li>
     </ul>
 </body>
 </html>
