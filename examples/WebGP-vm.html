@@ -324,7 +324,7 @@ void main() {
             watch.mark();
 						GP.Util.clear();
 
-						clicks = (Date.now() <= MULTICLICK_MS) ? clicks : 0;   // clear clicks if time has passed
+						clicks = (Date.now()-clickTime <= MULTICLICK_MS) ? clicks : 0;   // clear clicks if time has passed
 						uniformBlock.set({
 								mouse: mouse,
 								now: window.performance.now(),  //newTime - startTime,    // time since start
