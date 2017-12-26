@@ -71,8 +71,7 @@ function WebGP(canvas, context) {
                     uniformBlocks = this.uniformBlocks.map((b,i) =>
                             "\nlayout(std140) uniform ublocks"+i+" {\n"
                             + Util.declarationList("", Util.prefixKeys("u_", b.struct.fields))
-                            + "\n}"+(b.name ? b.name : "")
-                          ).join("\n\n")+";\n";
+                            + "\n}"+(b.name ? b.name : "")+";\n").join("\n\n");
                 }
                 this.updateShaderCode = description.updateStep.glsl;
                 let ofields = Util.prefixKeys("o_", this.struct.fields);  // so we can add one for texture out if needed
@@ -133,8 +132,7 @@ function WebGP(canvas, context) {
                     uniformBlocks = this.uniformBlocks.map((b,i) =>
                             "\nlayout(std140) uniform ublocks"+i+" {\n"
                             + Util.declarationList("", Util.prefixKeys("u_", b.struct.fields))
-                            + "\n}"+(b.name ? b.name : "")
-                          ).join("\n\n")+";\n";
+                            + "\n}"+(b.name ? b.name : "")+";\n").join("\n\n");
                 }
                 this.renderUniforms = description.renderStep.params;
                 this.renderViewport = description.renderStep.viewport;
@@ -248,7 +246,7 @@ function WebGP(canvas, context) {
                 gl.bindBufferBase(gl.UNIFORM_BUFFER, 0, this.uniformBlock.buffer);
             }
             if (this.uniformBlocks) {
-              this.uniformBlocks.map((b,i) => gl.bindBufferBase(gl.UNIFORM_BUFFER, i, this.uniformBlocks[i]) );
+              this.uniformBlocks.map((b,i) => gl.bindBufferBase(gl.UNIFORM_BUFFER, i, this.uniformBlocks[i].buffer) );
             }
 
             // Bind source and destination buffers
@@ -298,7 +296,7 @@ function WebGP(canvas, context) {
                 gl.bindBufferBase(gl.UNIFORM_BUFFER, 0, this.uniformBlock.buffer);
             }
             if (this.uniformBlocks) {
-              this.uniformBlocks.map((b,i) => gl.bindBufferBase(gl.UNIFORM_BUFFER, i, this.uniformBlocks[i]) );
+              this.uniformBlocks.map((b,i) => gl.bindBufferBase(gl.UNIFORM_BUFFER, i, this.uniformBlocks[i].buffer) );
             }
 
             // Setup context
@@ -547,6 +545,9 @@ function WebGP(canvas, context) {
                 this.data = new ArrayBuffer(this.struct.byteSize);
                 this.dataview = new DataView(this.data);
                 this.struct.layout.forEach(f => { f.setFunction(this.dataview, f.offset, description.initialize[f.field]); });
+            } else {
+              this.data = new ArrayBuffer(this.struct.byteSize);
+              this.dataview = new DataView(this.data);
             }
 
             // Set up the buffer
@@ -623,10 +624,31 @@ function WebGP(canvas, context) {
             , dataview.getFloat32(foffset + 8, littleEndian)
             , dataview.getFloat32(foffset + 12,littleEndian)];
     }
+    function getBoolField(dataview, foffset) {
+        return dataview.getUint8(foffset);
+    }
+    function getBVec2Field(dataview, foffset) {
+        return [dataview.getUint8(foffset)
+            , dataview.getUint8(foffset + 1)];
+    }
+    function getBVec3Field(dataview, foffset) {
+        return [dataview.getUint8(foffset)
+          , dataview.getUint8(foffset + 1)
+          , dataview.getUint8(foffset + 2)];
+    }
+    function getBVec4Field(dataview, foffset) {
+        return [dataview.getUint8(foffset)
+          , dataview.getUint8(foffset + 1)
+          , dataview.getUint8(foffset + 2)
+            , dataview.getUint8(foffset + 3)];
+    }
 
     // Handy functions to set data in a dataview
     function setIntField(dataview, foffset, val) {
         dataview.setInt32(foffset, val, littleEndian);
+    }
+    function setByteField(dataview, foffset, val) {
+        dataview.setUint8(foffset, val);
     }
     function setFloatField(dataview, foffset, val) {
         dataview.setFloat32(foffset, val, littleEndian);
@@ -652,6 +674,24 @@ function WebGP(canvas, context) {
         dataview.setFloat32(foffset + 8, val[2], littleEndian);
         dataview.setFloat32(foffset + 12, val[3], littleEndian);
     }
+    function setBoolField(dataview, foffset, val) {
+        dataview.setUint8(foffset, val);
+    }
+    function setBVec2Field(dataview, foffset, val) {
+        dataview.setUint8(foffset, val[0]);
+        dataview.setUint8(foffset + 1, val[1]);
+    }
+    function setBVec3Field(dataview, foffset, val) {
+        dataview.setUint8(foffset, val[0]);
+        dataview.setUint8(foffset + 1, val[1]);
+        dataview.setUint8(foffset + 2, val[2]);
+    }
+    function setBVec4Field(dataview, foffset, val) {
+        dataview.setUint8(foffset, val[0]);
+        dataview.setUint8(foffset + 1, val[1]);
+        dataview.setUint8(foffset + 2, val[2]);
+        dataview.setUint8(foffset + 3, val[3]);
+    }
 
     const Util = {
 
@@ -659,7 +699,7 @@ function WebGP(canvas, context) {
         glTypes: {
           "mat4": {literal: "mat4", constant: gl.FLOAT_MAT4, slotType: gl.FLOAT, slots: 4, bytes: 64, qualifier: "", getFunction: getMat4Field, setFunction: setMat4Field },
           "vec4": {literal: "vec4", constant: gl.FLOAT_VEC4, slotType: gl.FLOAT, slots: 4, bytes: 16, qualifier: "", getFunction: getVec4Field, setFunction: setVec4Field },
-            "vec3": {literal: "vec3", constant: gl.FLOAT_VEC3, slotType: gl.FLOAT, slots: 3, bytes: 12, qualifier: "", getFunction: getVec3Field, setFunction: setVec3Field },
+          "vec3": {literal: "vec3", constant: gl.FLOAT_VEC3, slotType: gl.FLOAT, slots: 3, bytes: 12, qualifier: "", getFunction: getVec3Field, setFunction: setVec3Field },
             "vec2": {literal: "vec2", constant: gl.FLOAT_VEC2, slotType: gl.FLOAT, slots: 2, bytes: 8, qualifier: "", getFunction: getVec2Field, setFunction: setVec2Field },
             "float": {literal: "float", constant: gl.FLOAT, slotType: gl.FLOAT, slots: 1, bytes: 4, qualifier: "", getFunction: getFloatField, setFunction: setFloatField },
             "byte": {literal: "byte", constant: gl.BYTE, slotType: gl.BYTE, slots: 1, bytes: 1, qualifier: "", getFunction: getIntField, setFunction: setIntField },
@@ -668,7 +708,11 @@ function WebGP(canvas, context) {
             "ushort": {literal: "ushort", constant: gl.UNSIGNED_SHORT, slotType: gl.UNSIGNED_SHORT, slots: 1, bytes: 2, qualifier: "", getFunction: getIntField, setFunction: setIntField },
             "int": {literal: "int", constant: gl.INT, slotType: gl.INT, slots: 1, bytes: 4, qualifier: "flat", getFunction: getIntField, setFunction: setIntField },
             "uint": {literal: "uint", constant: gl.UNSIGNED_INT, slotType: gl.UNSIGNED_INT, slots: 1, bytes: 4, qualifier: "", getFunction: getIntField, setFunction: setIntField },
-            "sampler2D": {literal: "sampler2D", constant: gl.TEXTURE_2D, slotType: gl.TEXTURE_2D, slots: 1, bytes: 1, qualifier: "", getFunction: null, setFunction: null }
+            "bool": {literal: "bool", constant: gl.BOOL, slotType: gl.BOOL, slots: 1, bytes: 4, qualifier: "", getFunction: getBoolField, setFunction: setBoolField },
+    //        "bvec2": {literal: "bvec2", constant: gl.BOOL_VEC2, slotType: gl.BOOL, slots: 2, bytes: 8, qualifier: "", getFunction: getBVec2Field, setFunction: setBVec2Field },
+    //        "bvec3": {literal: "bvec3", constant: gl.BOOL_VEC3, slotType: gl.BOOL, slots: 3, bytes: 12, qualifier: "", getFunction: getBVec3Field, setFunction: setBVec3Field },
+    //        "bvec4": {literal: "bvec4", constant: gl.BOOL_VEC4, slotType: gl.BOOL, slots: 4, bytes: 16, qualifier: "", getFunction: getBVec4Field, setFunction: setBVec4Field },
+            "sampler2D": {literal: "sampler2D", constant: gl.TEXTURE_2D, slotType: gl.TEXTURE_2D, slots: 1, bytes: 4, qualifier: "", getFunction: getIntField, setFunction: setIntField }
         },
 
         // Handy macros to include in vertex shaders when using data textures

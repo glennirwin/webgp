@@ -1,30 +1,20 @@
 if (!Kit) var Kit = {};
-Kit.Primitives = {
+Kit.SDFx1 = {
       model: "quad",
  renderStep: {
         fragment: `
           // The MIT License Copyright © 2013 Inigo Quilez
           // More info here: http://www.iquilezles.org/www/articles/distfunctions/distfunctions.htm
-          #define AA 3   // make this 1 is your machine is too slow
-          float sdPlane( vec3 p )	{
-            return p.y;
-          }
-          float sdSphere( vec3 p,float s ) {
-              return length(p)-s;
-          }
+          #define AA 1   // make this 1 is your machine is too slow
+          float sdPlane( vec3 p )	{ return p.y; }
+          float sdSphere( vec3 p,float s ) { return length(p)-s;  }
           float sdBox( vec3 p, vec3 b )	{
               vec3 d = abs(p) - b;
               return min(max(d.x,max(d.y,d.z)),0.0) + length(max(d,0.0));
           }
-          float sdEllipsoid( in vec3 p, in vec3 r )	{
-              return (length( p/r ) - 1.0) * min(min(r.x,r.y),r.z);
-          }
-          float udRoundBox( vec3 p, vec3 b, float r )	{
-              return length(max(abs(p)-b,0.0))-r;
-          }
-          float sdTorus( vec3 p, vec2 t ) {
-              return length( vec2(length(p.xz)-t.x,p.y) )-t.y;
-          }
+          float sdEllipsoid( in vec3 p, in vec3 r )	{ return (length( p/r ) - 1.0) * min(min(r.x,r.y),r.z); }
+          float udRoundBox( vec3 p, vec3 b, float r )	{ return length(max(abs(p)-b,0.0))-r; }
+          float sdTorus( vec3 p, vec2 t ) { return length( vec2(length(p.xz)-t.x,p.y) )-t.y; }
           float sdHexPrism( vec3 p, vec2 h ) {
               vec3 q = abs(p);
               float d1 = q.z-h.y;
@@ -141,28 +131,27 @@ Kit.Primitives = {
           //------------------------------------------------------------------
 
           vec2 map( in vec3 pos )  {
-              vec2 res = opU( vec2( sdPlane(     pos), 1.0 ),
-                            vec2( sdSphere(    pos-vec3( 0.0,0.25, 0.0), 0.25 ), 46.9 ) );
-              res = opU( res, vec2( sdBox(       pos-vec3( 1.0,0.25, 0.0), vec3(0.25) ), 3.0 ) );
-              res = opU( res, vec2( udRoundBox(  pos-vec3( 1.0,0.25, 1.0), vec3(0.15), 0.1 ), 41.0 ) );
-            res = opU( res, vec2( sdTorus(     pos-vec3( 0.0,0.25, 1.0), vec2(0.20,0.05) ), 25.0 ) );
-              res = opU( res, vec2( sdCapsule(   pos,vec3(-1.3,0.10,-0.1), vec3(-0.8,0.50,0.2), 0.1  ), 31.9 ) );
-            res = opU( res, vec2( sdTriPrism(  pos-vec3(-1.0,0.25,-1.0), vec2(0.25,0.05) ),43.5 ) );
-            res = opU( res, vec2( sdCylinder(  pos-vec3( 1.0,0.30,-1.0), vec2(0.1,0.2) ), 8.0 ) );
-            res = opU( res, vec2( sdCone(      pos-vec3( 0.0,0.50,-1.0), vec3(0.8,0.6,0.3) ), 55.0 ) );
-            res = opU( res, vec2( sdTorus82(   pos-vec3( 0.0,0.25, 2.0), vec2(0.20,0.05) ),50.0 ) );
-            res = opU( res, vec2( sdTorus88(   pos-vec3(-1.0,0.25, 2.0), vec2(0.20,0.05) ),43.0 ) );
-            res = opU( res, vec2( sdCylinder6( pos-vec3( 1.0,0.30, 2.0), vec2(0.1,0.2) ), 12.0 ) );
-            res = opU( res, vec2( sdHexPrism(  pos-vec3(-1.0,0.20, 1.0), vec2(0.25,0.05) ),17.0 ) );
-            res = opU( res, vec2( sdPryamid4(  pos-vec3(-1.0,0.15,-2.0), vec3(0.8,0.6,0.25) ),37.0 ) );
-              res = opU( res, vec2( opS( udRoundBox(  pos-vec3(-2.0,0.2, 1.0), vec3(0.15),0.05),
-                                       sdSphere(    pos-vec3(-2.0,0.2, 1.0), 0.25)), 13.0 ) );
-              res = opU( res, vec2( opS( sdTorus82(  pos-vec3(-2.0,0.2, 0.0), vec2(0.20,0.1)),
-                                       sdCylinder(  opRep( vec3(atan(pos.x+2.0,pos.z)/6.2831, pos.y, 0.02+0.5*length(pos-vec3(-2.0,0.2, 0.0))), vec3(0.05,1.0,0.05)), vec2(0.02,0.6))), 51.0 ) );
-            res = opU( res, vec2( 0.5*sdSphere(    pos-vec3(-2.0,0.25,-1.0), 0.2 ) + 0.03*sin(50.0*pos.x)*sin(50.0*pos.y)*sin(50.0*pos.z), 65.0 ) );
-            res = opU( res, vec2( 0.5*sdTorus( opTwist(pos-vec3(-2.0,0.25, 2.0)),vec2(0.20,0.05)), 46.7 ) );
-              res = opU( res, vec2( sdConeSection( pos-vec3( 0.0,0.35,-2.0), 0.15, 0.2, 0.1 ), 13.67 ) );
-              res = opU( res, vec2( sdEllipsoid( pos-vec3( 1.0,0.35,-2.0), vec3(0.15, 0.2, 0.05) ), 43.17 ) );
+              vec2 res = opU( vec2( sdPlane(     pos), 1.0 ), vec2( sdSphere(    pos-vec3( 0.0,0.0, 0.0), 0.5 ), 46.9 ) );
+        //      res = opU( res, vec2( sdBox(       pos-vec3( 1.0,0.25, 0.0), vec3(0.25) ), 3.0 ) );
+      //        res = opU( res, vec2( udRoundBox(  pos-vec3( 1.0,0.25, 1.0), vec3(0.15), 0.1 ), 41.0 ) );
+      //      res = opU( res, vec2( sdTorus(     pos-vec3( 0.0,0.25, 1.0), vec2(0.20,0.05) ), 25.0 ) );
+      //        res = opU( res, vec2( sdCapsule(   pos,vec3(-1.3,0.10,-0.1), vec3(-0.8,0.50,0.2), 0.1  ), 31.9 ) );
+      //      res = opU( res, vec2( sdTriPrism(  pos-vec3(-1.0,0.25,-1.0), vec2(0.25,0.05) ),43.5 ) );
+      //      res = opU( res, vec2( sdCylinder(  pos-vec3( 1.0,0.30,-1.0), vec2(0.1,0.2) ), 8.0 ) );
+    //        res = opU( res, vec2( sdCone(      pos-vec3( 0.0,0.50,-1.0), vec3(0.8,0.6,0.3) ), 55.0 ) );
+      //      res = opU( res, vec2( sdTorus82(   pos-vec3( 0.0,0.25, 2.0), vec2(0.20,0.05) ),50.0 ) );
+      //      res = opU( res, vec2( sdTorus88(   pos-vec3(-1.0,0.25, 2.0), vec2(0.20,0.05) ),43.0 ) );
+      //      res = opU( res, vec2( sdCylinder6( pos-vec3( 1.0,0.30, 2.0), vec2(0.1,0.2) ), 12.0 ) );
+      //      res = opU( res, vec2( sdHexPrism(  pos-vec3(-1.0,0.20, 1.0), vec2(0.25,0.05) ),17.0 ) );
+      //      res = opU( res, vec2( sdPryamid4(  pos-vec3(-1.0,0.15,-2.0), vec3(0.8,0.6,0.25) ),37.0 ) );
+      //        res = opU( res, vec2( opS( udRoundBox(  pos-vec3(-2.0,0.2, 1.0), vec3(0.15),0.05),
+      //                                 sdSphere(    pos-vec3(-2.0,0.2, 1.0), 0.25)), 13.0 ) );
+      //        res = opU( res, vec2( opS( sdTorus82(  pos-vec3(-2.0,0.2, 0.0), vec2(0.20,0.1)),
+      //                                 sdCylinder(  opRep( vec3(atan(pos.x+2.0,pos.z)/6.2831, pos.y, 0.02+0.5*length(pos-vec3(-2.0,0.2, 0.0))), vec3(0.05,1.0,0.05)), vec2(0.02,0.6))), 51.0 ) );
+      //      res = opU( res, vec2( 0.5*sdSphere(    pos-vec3(-2.0,0.25,-1.0), 0.2 ) + 0.03*sin(50.0*pos.x)*sin(50.0*pos.y)*sin(50.0*pos.z), 65.0 ) );
+      //      res = opU( res, vec2( 0.5*sdTorus( opTwist(pos-vec3(-2.0,0.25, 2.0)),vec2(0.20,0.05)), 46.7 ) );
+      //        res = opU( res, vec2( sdConeSection( pos-vec3( 0.0,0.35,-2.0), 0.15, 0.2, 0.1 ), 13.67 ) );
+      //        res = opU( res, vec2( sdEllipsoid( pos-vec3( 1.0,0.35,-2.0), vec3(0.15, 0.2, 0.05) ), 43.17 ) );
 
               return res;
           }
@@ -170,23 +159,19 @@ Kit.Primitives = {
           vec2 castRay( in vec3 ro, in vec3 rd )  {
               float tmin = 1.0;
               float tmax = 20.0;
-
               // bounding volume
 //										    float tp1 = (0.0-ro.y)/rd.y; if( tp1>0.0 ) tmax = min( tmax, tp1 );
 //										    float tp2 = (1.6-ro.y)/rd.y; if( tp2>0.0 ) { if( ro.y>1.6 ) tmin = max( tmin, tp2 );
 //										                                                 else           tmax = min( tmax, tp2 ); }
-
               float t = tmin;
               float m = -1.0;
-              for( int i=0; i<64; i++ )
-              {
+              for( int i=0; i<64; i++ ) {
                 float precis = 0.0005*t;
                 vec2 res = map( ro+rd*t );
                   if( res.x<precis || t>tmax ) break;
                   t += res.x;
                 m = res.y;
               }
-
               if( t>tmax ) m=-1.0;
               return vec2( t, m );
           }
@@ -195,8 +180,7 @@ Kit.Primitives = {
           float softshadow( in vec3 ro, in vec3 rd, in float mint, in float tmax )    {
             float res = 1.0;
               float t = mint;
-              for( int i=0; i<16; i++ )
-              {
+              for( int i=0; i<16; i++ ) {
               float h = map( ro + rd*t ).x;
                   res = min( res, 8.0*h/t );
                   t += clamp( h, 0.02, 0.10 );
@@ -296,7 +280,7 @@ Kit.Primitives = {
 
           void main()  {
               vec2 mo = u_vpmouse.z > -2.0 ? vec2(1.0,-1.0) * (u_vpmouse.xy - u_vpmouse.zw) : vec2(0.0,0.0);  // drag from click
-            float time = 15.0 + u_time;
+            float time = 0.0; // + u_time;
               vec3 tot = vec3(0.0);
               for( int m=0; m<AA; m++ )
               for( int n=0; n<AA; n++ )  {
@@ -305,7 +289,7 @@ Kit.Primitives = {
                   vec2 p = (inverse(u_projection) * vec4(((gl_FragCoord.xy+o)/u_resolution.xy * 2.0 - 1.0),1.0,1.0)).xy;
                   // camera
                   vec3 ro = vec3( -0.5+3.5*cos(0.1*time + 6.0*mo.x), 1.0 + 2.0*mo.y, 0.5 + 4.0*sin(0.1*time + 6.0*mo.x) );
-                  vec3 ta = vec3( -0.5, -0.4, 0.5 );
+                  vec3 ta = vec3( -0.5, -0.2, 0.5 );
                   // camera-to-world transformation
                   mat3 ca = setCamera( ro, ta, 0.0 );
                   // ray direction

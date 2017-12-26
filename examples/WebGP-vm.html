@@ -11,7 +11,7 @@
 		<script src="toys/StarToy.js"></script>
 		<script src="toys/Cubes.js"></script>
 		<script src="toys/Galaxy.js"></script>
-		<script src="toys/SDFexperiment1.js"></script>
+		<script src="toys/SDFx1.js"></script>
     <script>
 				const VIEWPORT_MAX = 1000;		// Max number of viewports
 				const MULTICLICK_MS = 330;	// ms delay to count clicks
@@ -83,15 +83,20 @@ mat4 projection(vec4 viewport) {
 				const image1 = new Image();
 				const image2 = new Image();
         // Textures are assigned with uniforms
+
+        const VIEWTEXTURE_SIZE = GP.Util.data2d(VIEWPORT_MAX);
         const uniforms = {
+            viewports: GP.Util.buildDataTexture(VIEWTEXTURE_SIZE,VIEWTEXTURE_SIZE),
             iChannel0: null,
             iChannel1: null
         };
 
-				// Mouse location and click location
-				let clickTime = 0.0;
+        // Feed mouse events into the uniformBlock data
+				let clickTime = 0.0, clicks = 0;
         let mouse = [0.0, 0.0, -2.0, -2.0];
-				let clicks = 0;
+				window.addEventListener('mousemove', e => { mouse[0]=e.clientX; mouse[1]=canvas.clientHeight-e.clientY;  });
+				window.addEventListener('mouseup', e => { mouse[2]=-2.0; mouse[3]=-2.0;  });
+      	window.addEventListener('mousedown', e => { clicks=(Date.now()-clickTime<=MULTICLICK_MS)?clicks+1:1; clickTime=Date.now(); mouse[2]=e.clientX; mouse[3]=canvas.clientHeight-e.clientY; });
 
 				const uniformBlock = new GP.UniformBlock({		// This block is sent to the viewporter to relay to all blocks
             struct: {
@@ -110,21 +115,35 @@ mat4 projection(vec4 viewport) {
             }
         });
 
-				// Feed window events into the uniformBlock data
-				window.addEventListener('mousemove', event => { mouse[0] = event.clientX; mouse[1] = canvas.clientHeight - event.clientY;  });
-				window.addEventListener('mouseup', event => { mouse[2] = -2.0; mouse[3] = -2.0;  });
-      	window.addEventListener('mousedown', event => {
-										clicks = (Date.now() - clickTime <= MULTICLICK_MS) ? clicks + 1 : 1;   clickTime = Date.now();
-										mouse[2] = event.clientX;   mouse[3] = canvas.clientHeight - event.clientY;
-				});
-
-				// Resize updates the GL viewport and the resolution in the uniform block
+        // Resize updates the GL viewport and the resolution in the uniform block
 				window.addEventListener('resize', event => {
 					canvas.width = window.innerWidth - 1;
 					canvas.height = window.innerHeight - 1;
 					GP.gl.viewport(0, 0, canvas.clientWidth, canvas.clientHeight);
 					uniformBlock.set({ resolution: [canvas.clientWidth, canvas.clientHeight]});
 				});
+
+        const keyboardBlock = new GP.UniformBlock({		// This block is sent to interested components
+            struct: {
+								ArrowDown: "int", ArrowUp: "int",	ArrowLeft: "int", ArrowRight: "int",
+                Escape: "int", Enter: "int", Minus: "int", Equal: "int", Delete: "int",
+                Backslash: "int", Insert: "int", Home: "int", End: "int",  PageUp: "int", PageDown: "int", Space: "int", Backspace: "int", Tab: "int",
+                F1: "int", F2: "int", F3: "int", F4: "int", F5: "int", F6: "int", F7: "int", F8: "int", F9: "int", F10: "int", F11: "int", F12: "int",
+                ShiftLeft: "int",  ShiftRight: "int", ControlLeft: "int", ControlRight: "int", AltLeft: "int", AltRight: "int",
+                Digit1: "int",  Digit2: "int",  Digit3: "int", Digit4: "int", Digit5: "int", Digit6: "int", Digit7: "int", Digit8: "int", Digit9: "int", Digit0: "int",
+                KeyA: "int", KeyB: "int", KeyC: "int", KeyD: "int", KeyE: "int", KeyF: "int", KeyG: "int",
+                KeyH: "int", KeyI: "int", KeyJ: "int", KeyK: "int", KeyL: "int", KeyM: "int", KeyN: "int",
+                KeyO: "int", KeyP: "int", KeyQ: "int", KeyR: "int", KeyS: "int", KeyT: "int", KeyU: "int",
+                KeyV: "int", KeyW: "int", KeyX: "int", KeyY: "int", KeyZ: "int"
+            }
+        });
+
+        // Feed keyboard events to the keyboard block
+        function keyModifier(e) { return e.altKey && e.shiftKey ? 2048 : e.ctrlKey && e.shiftKey ? 4096 : e.ctrlKey && e.altKey ? 8192 :e.altKey ? 256 : e.shiftKey ? 512 : e.ctrlKey ? 1024 : 0; }
+				window.addEventListener('keydown', e => keyboardBlock.setWrite( {[e.code]: 1+keyModifier(e)} ));
+				window.addEventListener('keyup', e => keyboardBlock.setWrite( {[e.code]: -1-keyModifier(e)} ));
+				window.addEventListener('keypress', e => keyboardBlock.setWrite( {[e.code]: 2+keyModifier(e)} ));
+        //        function logKey(t,e) { console.log("key"+t+" "+(e.altKey?"~":"")+(e.ctrlKey?"^":"")+(e.shiftKey?"_":"")+e.key+"  "+e.keyCode+"  "+e.code); }
 
 			// common structure used by each viewport  (the viewporter maintains them all as a set)
 			const viewStructure = {
@@ -142,7 +161,7 @@ mat4 projection(vec4 viewport) {
 			};
 
 			const viewInitial = {
-				 viewport: [0.0, 0.0, 0.0, 0.0],
+				 viewport: [-2.0, -2.0, 0.0, 0.0],
 					  mouse: [0.0, 0.0, 0.0, 0.0],
 			 resolution: [0.0, 0.0],
 						 time: -1.0,
@@ -155,28 +174,29 @@ mat4 projection(vec4 viewport) {
 			 projection: [-2.0,-2.0,-2.0,-2.0]
 		 };
 
-		 function viewBlock() {							// Each viewbox will get its own one of these
+		 function viewBlock() {							// Each viewbox array will share one of these
 				return new GP.UniformBlock({ struct: viewStructure,  initialize: viewInitial });
 		 }
 
-		// Maintains viewport locations and sizes for each component
+		// Maintains viewBlock information, location and size for each component
 		const viewporter = new GP.VertexComputer({
 				units: 1000,
 				struct: viewStructure,
 				initializeObject: (i) => { return viewInitial;	},
 				uniforms: uniforms,
-				uniformBlock: uniformBlock,
+        uniformBlocks: [uniformBlock,keyboardBlock],
+        textureOut: true,
 				updateStep: {
-						glsl: cornerVectors + matrixFunctions + `
+            params: { viewports: "sampler2D" },
+						glsl: cornerVectors + matrixFunctions + GP.Util.dataTextureMacros + `
 void main() {
-
+  vec4 nv = i_viewport;
 		if (i_time < 0.0) {  // Inactive or closed
 			o_time = i_time;
 			o_now = u_now;
 			o_date = i_date;
 			o_delta = 0.0;
 			o_mouse = i_mouse;
-			o_viewport = i_viewport;
 			o_resolution = u_resolution;
 			o_projection = i_projection;
 			o_vpmouse = i_vpmouse;
@@ -189,18 +209,22 @@ void main() {
 			o_time = i_time + o_delta/1000.0;  // Increment time for this unit
 			o_resolution = u_resolution;
 			o_projection = projection(i_viewport);
-			o_viewport = i_viewport;
 			o_clicks = u_clicks;
 
+      if (u_ArrowUp > 0)  nv.y = nv.y + 0.01;
+      if (u_ArrowDown > 0)  nv.y = nv.y - 0.01;
+      if (u_ArrowLeft > 0)  nv.x = nv.x - 0.01;
+      if (u_ArrowRight > 0)  nv.x = nv.x + 0.01;
+
 			// Clamp location and size to GL space - boxes can't leave or be partially off screen
-			if (o_viewport.z > 2.0) o_viewport.z = 2.0;
-			if (o_viewport.w > 2.0) o_viewport.w = 2.0;
-			if (o_viewport.z < 0.0) o_viewport.z = abs(o_viewport.z);
-			if (o_viewport.w < 0.0) o_viewport.w = abs(o_viewport.w);
-			if (o_viewport.x < -1.0) o_viewport.x = -1.0;
-			if (o_viewport.x+o_viewport.z > 1.0) o_viewport.x = 1.0 - o_viewport.z;
-			if (o_viewport.y < -1.0) o_viewport.y = -1.0;
-			if (o_viewport.y+o_viewport.w > 1.0) o_viewport.y = 1.0 - o_viewport.w;
+			if (nv.z > 2.0) nv.z = 2.0;
+			if (nv.w > 2.0) nv.w = 2.0;
+			if (nv.z < 0.0) nv.z = abs(nv.z);
+			if (nv.w < 0.0) nv.w = abs(nv.w);
+			if (nv.x < -1.0) nv.x = -1.0;
+			if (nv.x+nv.z > 1.0) nv.x = 1.0 - nv.z;
+			if (nv.y < -1.0) nv.y = -1.0;
+			if (nv.y+nv.w > 1.0) nv.y = 1.0 - nv.w;
 
 			vec2 newmouse = u_mouse.xy / u_resolution * 2.0 - 1.0;
 			vec2 newclick = u_mouse.z == -2.0 ? u_mouse.zw : u_mouse.zw / u_resolution * 2.0 - 1.0;
@@ -210,72 +234,103 @@ void main() {
 			o_vpmouse.xy = mouse.xy;   // set to the view projected value for convenience down the line
 			o_vpmouse.zw = click.xy == i_vpmouse.zw ? click.xy : vec2(-2.0, -2.0); // send the click only if it was within the viewport (on the click)
 
+      if (u_mouse.z > -2.0 && i_vpmouse.z == -2.0) {  // not clicked on me so watch for others moving
+          for (int i=0;i<1000;i++) {
+              if (i != gl_VertexID) {
+                vec4 ovp = TEXTURE_FETCH(u_viewports,i,${VIEWTEXTURE_SIZE});
+                if (ovp.x == -2.0) break;  // reached end
+                if (ovp.y < nv.y + nv.w && ovp.y + ovp.w > nv.y) {  // if aligned vertically
+                  if (nv.x > ovp.x && ovp.x + ovp.z > nv.x) {
+                    nv.x += 0.01;  // I move right if other is overlap from left
+                  }
+                  if (nv.x < ovp.x && nv.x + nv.z > ovp.x) {
+                    nv.x -= 0.01;  // I move left if other is overlap from right
+                  }
+                }
+                if (ovp.x < nv.x + nv.z && ovp.x + ovp.z > nv.x) {  // if aligned horizontally
+                  if (nv.y > ovp.y && ovp.y + ovp.w > nv.y) {
+                    nv.y += 0.01;  // I move up
+                  }
+                  if (nv.y < ovp.y && nv.y + nv.w > ovp.y) {
+                    nv.y -= 0.01;  // I move down
+                  }
+                }
+              }
+          }
+      }
+
 			if (o_vpmouse.z == -2.0 && click.x > -2.0 && click.y > -2.0) {  // If clicked
 
-				float CLICK_THRESHOLD = 15.0/((i_viewport.z * u_resolution.x + i_viewport.w * u_resolution.y)/2.0) + 0.025;
+				float CLICK_THRESHOLD = 30.0/((i_viewport.z * u_resolution.x + i_viewport.w * u_resolution.y)/2.0) + 0.01;
 
-				float distToMover = i_viewport.xy == i_mouse.zw ? -1.0 : min(distance(moverTVector, abs(mouse.xy)), distance(moverRVector,abs(mouse.xy)));
-				float distToSizer = i_viewport.zw == i_mouse.zw ? -1.0 : distance(sizerVector,abs(mouse.xy));
-				float distToSizeVH = i_viewport.xw == i_mouse.zw ? -1.0 : min(distance(sizeVVector,abs(mouse.xy)),distance(sizeHVector,abs(mouse.xy)));
+				float distToMover = i_viewport.xy == i_mouse.zw ? 0.0 : min(distance(moverTVector, abs(mouse.xy)), distance(moverRVector,abs(mouse.xy)));
+				float distToSizer = i_viewport.zw == i_mouse.zw ? 0.0 : distance(sizerVector,abs(mouse.xy));
+				float distToSizeVH = i_viewport.xw == i_mouse.zw ? 0.0 : min(distance(sizeVVector,abs(mouse.xy)),distance(sizeHVector,abs(mouse.xy)));
 
 				if (distToMover < CLICK_THRESHOLD && u_clicks == 3) {  					// CLOSE viewport on mover tripleclick
 						o_time = -1.0;
 						o_delta = 0.0;
 						o_viewport = vec4(-2.0,-2.0,-0.0,0.0);
-						o_projection = projection(o_viewport);
+						o_projection = projection(nv);
 						o_mouse = vec4(0.0,0.0,0.0,0.0);
 						o_vpmouse = vec4(0.0,0.0,0.0,0.0);
 						return;
 
 				} else if (distToMover == -1.0 || distToMover < CLICK_THRESHOLD) {  // moving is simple enough
-						o_viewport.xy = i_viewport.xy + newmouse - i_mouse.xy;  // move it
-					o_viewport.xy = i_viewport.xy + newmouse - i_mouse.xy;  // move it
-							o_mouse.zw = o_viewport.xy; // keep the click with the location to lock it in
+						nv.xy = i_viewport.xy + newmouse - i_mouse.xy;  // move it
+							o_mouse.zw = nv.xy; // keep the click with the location to lock it in
 
 				} else if (distToSizer == -1.0 || distToSizer < CLICK_THRESHOLD) {  // Sizing is more complex as both size and loc must be moved sometimes
 						if (sign(mouse.x) > 0.0 && sign(mouse.y) > 0.0) {  // top right
-								o_viewport.zw = newmouse - i_viewport.xy;  // size it
-							o_mouse.zw = o_viewport.zw; // keep the click with the location to lock it in
+								nv.zw = newmouse - i_viewport.xy;  // size it
+							o_mouse.zw = nv.zw; // keep the click with the location to lock it in
 						} else if (sign(mouse.x) > 0.0 && sign(mouse.y) < 0.0) {  // bottom right
-							o_viewport.zw = i_viewport.zw + vec2(newmouse.x - i_mouse.x, i_mouse.y - newmouse.y);  // size it
-							o_viewport.xy = vec2(i_viewport.x, i_viewport.y + newmouse.y - i_mouse.y);  // Must alter y location only
-							o_mouse.zw = o_viewport.zw; // keep the click with the location to lock it in
+							nv.zw = i_viewport.zw + vec2(newmouse.x - i_mouse.x, i_mouse.y - newmouse.y);  // size it
+							nv.xy = vec2(i_viewport.x, i_viewport.y + newmouse.y - i_mouse.y);  // Must alter y location only
+							o_mouse.zw = nv.zw; // keep the click with the location to lock it in
 						} else if (sign(mouse.x) < 0.0 && sign(mouse.y) < 0.0) {   // Bottom left - alters location and size
-							o_viewport.zw =  i_viewport.zw + i_mouse.xy - newmouse;
-							o_viewport.xy = i_viewport.xy + newmouse - i_mouse.xy;
-							o_mouse.zw = o_viewport.zw; // keep the click with the location to lock it in
+							nv.zw =  i_viewport.zw + i_mouse.xy - newmouse;
+							nv.xy = i_viewport.xy + newmouse - i_mouse.xy;
+							o_mouse.zw = nv.zw; // keep the click with the location to lock it in
 						} else {  // Top left
-							o_viewport.zw =  i_viewport.zw + vec2(i_mouse.x - newmouse.x, newmouse.y - i_mouse.y);
-							o_viewport.xy = vec2(i_viewport.x + newmouse.x - i_mouse.x,i_viewport.y);  // Must alter y location only
-							o_mouse.zw = o_viewport.zw; // keep the click with the location to lock it in
+							nv.zw =  i_viewport.zw + vec2(i_mouse.x - newmouse.x, newmouse.y - i_mouse.y);
+							nv.xy = vec2(i_viewport.x + newmouse.x - i_mouse.x,i_viewport.y);  // Must alter y location only
+							o_mouse.zw = nv.zw; // keep the click with the location to lock it in
 						}
 
 				} else if (distToSizeVH == -1.0 || distToSizeVH < CLICK_THRESHOLD) {   // drag a side
 					if (mouse.x > 0.0 && abs(mouse.y) < 0.4) {  												// right - horizontal - width
-						o_viewport.zw = i_viewport.zw + vec2( newmouse.x - i_mouse.x,0.0);  							// size its width
-						o_mouse.zw = o_viewport.xw; 			// keep the click with the location to lock it in
+						nv.zw = i_viewport.zw + vec2( newmouse.x - i_mouse.x,0.0);  							// size its width
+						o_mouse.zw = nv.xw; 			// keep the click with the location to lock it in
 
 					} else if (mouse.y > 0.0 && abs(mouse.x) < 0.4) {  									// top - vertical - height
-						o_viewport.zw =  i_viewport.zw + vec2(0.0, newmouse.y - i_mouse.y);  								// size its height
-						o_mouse.zw = o_viewport.xw; // keep the click with the location to lock it in
+						nv.zw =  i_viewport.zw + vec2(0.0, newmouse.y - i_mouse.y);  								// size its height
+						o_mouse.zw = nv.xw; // keep the click with the location to lock it in
 
 					} else if (mouse.y < 0.0 && abs(mouse.x) < 0.4) {  									// bottom - vertical - height
-							o_viewport.zw =  i_viewport.zw + vec2(0.0,i_mouse.y - newmouse.y);  								// size its height
-							o_viewport.xy = vec2(i_viewport.x,i_viewport.y + newmouse.y - i_mouse.y);  // Must alter y location too
-							o_mouse.zw = o_viewport.xw; // keep the click with the location to lock it in
+							nv.zw =  i_viewport.zw + vec2(0.0,i_mouse.y - newmouse.y);  								// size its height
+							nv.xy = vec2(i_viewport.x,i_viewport.y + newmouse.y - i_mouse.y);  // Must alter y location too
+							o_mouse.zw = nv.xw; // keep the click with the location to lock it in
 
 					} else if (mouse.x < 0.0 && abs(mouse.y) < 0.4) {  												// left - horizontal - width
-							o_viewport.zw = i_viewport.zw + vec2(i_mouse.x - newmouse.x,0.0);  							// size its width
-							o_viewport.xy = vec2(i_viewport.x + newmouse.x - i_mouse.x, i_viewport.y);  // Must alter x location too
-							o_mouse.zw = o_viewport.xw; 			// keep the click with the location to lock it in
+							nv.zw = i_viewport.zw + vec2(i_mouse.x - newmouse.x,0.0);  							// size its width
+							nv.xy = vec2(i_viewport.x + newmouse.x - i_mouse.x, i_viewport.y);  // Must alter x location too
+							o_mouse.zw = nv.xw; 			// keep the click with the location to lock it in
 					}
 
 				} else {				// send the click only if it was within the viewport (on the click)
-					o_vpmouse.zw = lessThan(vec2(-0.99,-0.99),click.xy) == bvec2(true,true) && lessThan(click.xy,vec2(0.99,0.99)) == bvec2(true,true) ? click.xy : vec2(-2.0, -2.0);
+          o_vpmouse.zw = lessThan(vec2(-0.99,-0.99),click.xy) == bvec2(true,true) && lessThan(click.xy,vec2(0.99,0.99)) == bvec2(true,true) ? click.xy : vec2(-2.0, -2.0);
 				}
+	  }    // ends if clicked
 
-		} // ends if clicked
+
 	}  // if time > 0.0  (active)
+
+  o_projection = projection(nv);
+  textureColor = nv;
+  o_viewport = nv;
+  gl_Position = TEXTURE_POS(gl_VertexID, ${VIEWTEXTURE_SIZE});
+
 }
 												`},
 								renderStep: {			// Renders nearest appropriate control point for a viewport
@@ -289,7 +344,7 @@ void main() {
 vec4 jitter() {	return vec4(cos(i_time*TIME_MULT)/MOVE_FACTOR,sin(i_time*TIME_MULT)/MOVE_FACTOR*(i_resolution.x/i_resolution.y),0.,0.);	}
 
 void main() {
-		float CLICK_THRESHOLD = 15.0/((i_viewport.z * u_resolution.x + i_viewport.w * u_resolution.y)/2.0) + 0.025;
+		float CLICK_THRESHOLD = 30.0/((i_viewport.z * u_resolution.x + i_viewport.w * u_resolution.y)/2.0) + 0.01;
 		float distToSizer = distance(sizerVector,abs(i_vpmouse.xy));
 		float distToMover = min(distance(moverTVector, abs(i_vpmouse.xy)), distance(moverRVector,abs(i_vpmouse.xy)));
 		float distToSizeVH = min(distance(sizeVVector,abs(i_vpmouse.xy)),distance(sizeHVector,abs(i_vpmouse.xy)));
@@ -298,8 +353,8 @@ void main() {
 		float dist;
 		if (distToMover < md && distToMover < distToSizer && distToMover < distToSizeVH) {
 				dist = distToMover;
-				gl_Position =  i_projection * vec4((abs(i_vpmouse.x) > abs(i_vpmouse.y) ? moverRVector : moverTVector) * sign(i_vpmouse.xy),0.0,1.0)
-					+ (dist < CLICK_THRESHOLD ? vec4(0.,0.,0.,0.) : jitter());
+        gl_Position =  i_projection * vec4((abs(i_vpmouse.x) > abs(i_vpmouse.y) ? moverRVector : moverTVector) * sign(i_vpmouse.xy),0.0,1.0)
+        	+ (dist < CLICK_THRESHOLD ? vec4(0.,0.,0.,0.) : jitter());
 		} else if (distToSizer < md && distToSizer < distToMover && distToSizer < distToSizeVH) {
 					dist = distToSizer;
 					gl_Position =  i_projection * vec4(sizerVector * sign(i_vpmouse.xy),0.0,1.0)
@@ -316,7 +371,6 @@ void main() {
 										 dist < CLICK_THRESHOLD ? HOVER_COLOR : vec4(1.0 - dist/md,0.0,0.0,0.6);
 }`}
 });
-
 				let watch = GP.Util.stopWatch();
 				const stack = [];   // Viewports to draw, each element is an array of GPU shaders that share a viewport uniformBlock
 
@@ -333,8 +387,9 @@ void main() {
 						}).write();  // Write all at once - other values may have changed via events
 
 						viewporter.step();  // Update the viewports
+            uniforms.viewports = viewporter.getResultTexture();
 						stack.map((item,index) => {
-							viewporter.copyUnitToBlock(index,item[0].uniformBlock);							// All items must share uniformBlock
+							viewporter.copyUnitToBlock(index,item[0].uniformBlock);	// All shaders in item must share uniformBlock
 							item.map(layer => layer.step() );
 						});
 
@@ -344,9 +399,11 @@ void main() {
             GP.Util.GPControls(loop);
         }
 
-				let itemlist = ["Simplest","Tunnel","StarToy","Galaxy","Prism","Cubes","Primitives","SDFexperiment1"];
+				let itemlist = ["Simplest","Tunnel","StarToy","Galaxy","Prism","Cubes","Primitives","SDFx1"];
 				let items = itemlist.map(k => loadKit(k));
-				addItem(items[6]);    // to start with something
+				addItem(items[7]);    // to start with something
+
+        addItem([createTextureShader(viewBlock(),"viewports")]);
 
         loop();
 
@@ -380,16 +437,26 @@ void main() {
 					}
 				}
 
-				function createQuadShader(block, fragglsl) {		// A vanilla quad shader that uses the viewports projection
+				function createQuadShader(block, fragglsl, fragparams) {		// A vanilla quad shader that uses the viewports projection
 		      return new GP.VertexComputer({
 		          units: 6,
 		          type: GP.gl.TRIANGLES,
 		          struct: { position: "vec2" },
+              uniforms: uniforms,
 		          uniformBlock: block,
 		          initializeBuffer: GP.Util.quadBuffer(),
-		          renderStep: {  glsl: `void main() {  gl_Position = u_projection * vec4(i_position,0.0,1.0); 	}   `, fragment: fragglsl  }
+		          renderStep: {  glsl: `void main() {  gl_Position = u_projection * vec4(i_position,0.0,1.0); 	}   `, fragment: fragglsl, fragmentParams: fragparams }
 		      });
 		    }
+        // utility function to return computer that renders a texture
+        function createTextureShader(block, texname) {
+            return createQuadShader(block, `
+                    void main() {
+                        vec2 uv = ((inverse(u_projection) * vec4((gl_FragCoord.xy/u_resolution.xy * 2.0 - 1.0),0.0,1.0)).xy + 1.0) / 2.0;
+                        fragColor = texture(u_`+texname+`, uv);
+                        fragColor.a += 0.5; // Boost the alpha so we see something
+                    }`, { [texname]: "sampler2D"} );
+        }
     </script>
 </body>
 </html>
