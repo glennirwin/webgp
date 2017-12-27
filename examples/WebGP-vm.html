@@ -9,12 +9,18 @@
 		<script src="toys/Prism.js"></script>
     <script src="toys/Tunnel.js"></script>
 		<script src="toys/StarToy.js"></script>
-		<script src="toys/Cubes.js"></script>
-		<script src="toys/Galaxy.js"></script>
+    <script src="toys/Cubes.js"></script>
+    <script src="toys/ClockMin.js"></script>
+    <script src="toys/ClockCircles.js"></script>
+    <script src="toys/ClockSpiral.js"></script>
+    <script src="toys/Galaxy.js"></script>
+    <script src="toys/Water.js"></script>
 		<script src="toys/SDFx1.js"></script>
     <script>
 				const VIEWPORT_MAX = 1000;		// Max number of viewports
 				const MULTICLICK_MS = 330;	// ms delay to count clicks
+
+        let itemlist = ["Simplest","ClockMin","ClockSpiral","ClockCircles","Tunnel","StarToy","Galaxy","Prism","Cubes","Primitives","SDFx1"];  //
 
 				const cornerVectors = `
 // These are used to locate the control points
@@ -86,9 +92,7 @@ mat4 projection(vec4 viewport) {
 
         const VIEWTEXTURE_SIZE = GP.Util.data2d(VIEWPORT_MAX);
         const uniforms = {
-            viewports: GP.Util.buildDataTexture(VIEWTEXTURE_SIZE,VIEWTEXTURE_SIZE),
-            iChannel0: null,
-            iChannel1: null
+            viewports: GP.Util.buildDataTexture(VIEWTEXTURE_SIZE,VIEWTEXTURE_SIZE)
         };
 
         // Feed mouse events into the uniformBlock data
@@ -389,7 +393,7 @@ void main() {
 						viewporter.step();  // Update the viewports
             uniforms.viewports = viewporter.getResultTexture();
 						stack.map((item,index) => {
-							viewporter.copyUnitToBlock(index,item[0].uniformBlock);	// All shaders in item must share uniformBlock
+							viewporter.copyUnitToBlock(index,item[0].uniformBlocks[0]);	// All shaders in item must share uniformBlocks, first is always viewblock
 							item.map(layer => layer.step() );
 						});
 
@@ -399,11 +403,11 @@ void main() {
             GP.Util.GPControls(loop);
         }
 
-				let itemlist = ["Simplest","Tunnel","StarToy","Galaxy","Prism","Cubes","Primitives","SDFx1"];
 				let items = itemlist.map(k => loadKit(k));
+
 				addItem(items[7]);    // to start with something
 
-        addItem([createTextureShader(viewBlock(),"viewports")]);
+        addItem([createTextureShader(uniforms,[viewBlock()],"viewports")]);
 
         loop();
 
@@ -426,36 +430,106 @@ void main() {
 				function loadKit(name) {
 					let template = Kit[name];
 					if (!template || !template.model || !template.renderStep.fragment) {
-							console.log("trying to load "+name+" and could not even get a fragment in the renderStep, sad, all I got was "+template);
+							console.log("trying to load "+name+" and could not even get a fragment in the renderStep, so sad, all I got was "+template);
 					} else {
 						if (template.model = "quad") {
-								let vb = viewBlock();
-								return [createQuadShader(vb,template.renderStep.fragment)];  // ane item could have multiple layers sharing the viewport
+								let blocks = [viewBlock()], un = {}, params;
+                if (template.resources) template.resources.map(i => blocks.push(getResource(i)));  // add resources to uniform block array
+                if (template.textures) {
+                  un = loadTextures(template.textures);  // load the image
+                  params = {};  for (i in un) { params[i] = "sampler2D"; }  // add to frag params
+                }
+                return [createQuadShader(un, blocks, template.renderStep.fragment,params)];  // ane item could have multiple layers sharing the viewport
 						} else {
 							console.log("Don't yet know how to load a model type of "+template.model+" for item "+name+", you may have to teach me");
 						}
 					}
 				}
 
-				function createQuadShader(block, fragglsl, fragparams) {		// A vanilla quad shader that uses the viewports projection
+        function getResource(r) {
+          switch(r) {
+            case "keyboard": return keyboardBlock;
+          }
+        }
+
+        function loadTextures(un) {
+          for (i in un) {
+            let xhr = new XMLHttpRequest();
+            xhr.open("GET", un[i], true);
+            xhr.responseType = "blob";
+            xhr.onload = function(e) {
+                let image = new Image();
+                image.onload = function() {
+                    console.log(i+ " loaded from "+un[i]);
+                    un[i] = GP.Util.buildImageTexture(this);
+                    window.URL.revokeObjectURL(image.src);  // clean up
+                };
+                image.src = window.URL.createObjectURL(this.response);
+            };
+            xhr.send(null);
+          }
+          return un;
+        }
+
+				function createQuadShader(u, blocks, fragglsl, fragparams) {		// A vanilla quad shader that uses the viewports projection
 		      return new GP.VertexComputer({
 		          units: 6,
 		          type: GP.gl.TRIANGLES,
 		          struct: { position: "vec2" },
-              uniforms: uniforms,
-		          uniformBlock: block,
+              uniforms: u,
+		          uniformBlocks: blocks,
 		          initializeBuffer: GP.Util.quadBuffer(),
 		          renderStep: {  glsl: `void main() {  gl_Position = u_projection * vec4(i_position,0.0,1.0); 	}   `, fragment: fragglsl, fragmentParams: fragparams }
 		      });
 		    }
         // utility function to return computer that renders a texture
-        function createTextureShader(block, texname) {
-            return createQuadShader(block, `
+        function createTextureShader(u, blocks, texname) {
+            return createQuadShader(u, blocks, `
                     void main() {
                         vec2 uv = ((inverse(u_projection) * vec4((gl_FragCoord.xy/u_resolution.xy * 2.0 - 1.0),0.0,1.0)).xy + 1.0) / 2.0;
                         fragColor = texture(u_`+texname+`, uv);
                         fragColor.a += 0.5; // Boost the alpha so we see something
                     }`, { [texname]: "sampler2D"} );
+        }
+        //From: http://jsperf.com/encoding-xhr-image-data/5
+        function arrayBufferDataUri(raw) {
+            var base64 = '';
+            var encodings = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+            var bytes = new Uint8Array(raw);
+            var byteLength = bytes.byteLength;
+            var byteRemainder = byteLength % 3;
+            var mainLength = byteLength - byteRemainder;
+            var a, b, c, d;
+            var chunk;
+            // Main loop deals with bytes in chunks of 3
+            for (var i = 0; i < mainLength; i = i + 3) {
+                // Combine the three bytes into a single integer
+                chunk = (bytes[i] << 16) | (bytes[i + 1] << 8 ) | bytes[i + 2];
+                // Use bitmasks to extract 6-bit segments from the triplet
+                a = (chunk & 16515072) >> 18; // 16515072 = (2^6 - 1) << 18
+                b = (chunk & 258048) >> 12;   // 258048   = (2^6 - 1) << 12
+                c = (chunk & 4032) >> 6;      // 4032     = (2^6 - 1) << 6
+                d = chunk & 63;               // 63       = 2^6 - 1
+                // Convert the raw binary segments to the appropriate ASCII encoding
+                base64 += encodings[a] + encodings[b] + encodings[c] + encodings[d]
+            }
+            // Deal with the remaining bytes and padding
+            if (byteRemainder == 1) {
+                chunk = bytes[mainLength];
+                a = (chunk & 252) >> 2; // 252 = (2^6 - 1) << 2
+                // Set the 4 least significant bits to zero
+                b = (chunk & 3) << 4;   // 3   = 2^2 - 1
+                base64 += encodings[a] + encodings[b] + '==';
+            }
+            else if (byteRemainder == 2) {
+                chunk = (bytes[mainLength] << 8 ) | bytes[mainLength + 1];
+                a = (chunk & 16128) >> 8; // 16128 = (2^6 - 1) << 8
+                b = (chunk & 1008) >> 4;  // 1008  = (2^6 - 1) << 4
+                // Set the 2 least significant bits to zero
+                c = (chunk & 15) << 2;    // 15    = 2^4 - 1
+                base64 += encodings[a] + encodings[b] + encodings[c] + '=';
+            }
+            return "data:image/jpeg;base64," + base64;
         }
     </script>
 </body>
