@@ -81,6 +81,6 @@ Kit.ClockMin = {
                       col += df_scene(uv);
                   #endif /* AA */
 
-                  	fragColor = vec4(col, 1);
+                  	if (col.x > 0.0 && col.y > 0.0 && col.z > 0.0) fragColor = vec4(col, 1);
                   }`  }
 }
