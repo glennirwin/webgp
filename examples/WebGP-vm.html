@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head><title>WebGP-vm  A lightweight window manager for GPU viewports</title><meta charset="utf-8"></head>
-<body style="margin: 0; background-color: #222222; ">
+<body style="margin: 0; background: linear-gradient(to bottom right, black, #333333); ">
     <canvas style="display: block; cursor: pointer; user-select: none;"></canvas>
     <script src="../src/webgp2.js"></script>
 		<script src="toys/Simplest.js"></script>
@@ -9,6 +9,7 @@
 		<script src="toys/Prism.js"></script>
     <script src="toys/Tunnel.js"></script>
 		<script src="toys/StarToy.js"></script>
+    <script src="toys/PlasmaBall.js"></script>
     <script src="toys/Cubes.js"></script>
     <script src="toys/ClockMin.js"></script>
     <script src="toys/ClockCircles.js"></script>
@@ -20,7 +21,7 @@
 				const VIEWPORT_MAX = 1000;		// Max number of viewports
 				const MULTICLICK_MS = 330;	// ms delay to count clicks
 
-        let itemlist = ["Simplest","ClockMin","ClockSpiral","ClockCircles","Tunnel","StarToy","Galaxy","Prism","Cubes","Primitives","SDFx1"];  //
+        let itemlist = ["Simplest","ClockMin","PlasmaBall","ClockSpiral","ClockCircles","Tunnel","StarToy","Galaxy","Prism","Cubes","Primitives","SDFx1"];  //
 
 				const cornerVectors = `
 // These are used to locate the control points
@@ -404,11 +405,8 @@ void main() {
         }
 
 				let items = itemlist.map(k => loadKit(k));
-
-				addItem(items[7]);    // to start with something
-
-        addItem([createTextureShader(uniforms,[viewBlock()],"viewports")]);
-
+				addItem(items[1]);    // to start with something
+        //addItem([createTextureShader(uniforms,[viewBlock()],"viewports")]);  // Uncomment to see the viewports texture
         loop();
 
 				// Utility functions  ==================================
@@ -422,7 +420,7 @@ void main() {
 					if (stack.length == VIEWPORT_MAX) { console.error("out of viewport slots"); return; }
 					viewporter.updateUnit(stack.length, {
 						viewport: [Math.random()*1.9-0.9, Math.random()*1.9-0.9, 400/canvas.clientWidth, 300/canvas.clientHeight],
-						time: 0.0   // starts this item in the engine
+						time: 0.0   // starts this item in the viewport engine
 					});
 					stack.push(item);
 				}
@@ -433,11 +431,11 @@ void main() {
 							console.log("trying to load "+name+" and could not even get a fragment in the renderStep, so sad, all I got was "+template);
 					} else {
 						if (template.model = "quad") {
-								let blocks = [viewBlock()], un = {}, params;
+								let blocks = [viewBlock()],  un = {}, params;
                 if (template.resources) template.resources.map(i => blocks.push(getResource(i)));  // add resources to uniform block array
                 if (template.textures) {
                   un = loadTextures(template.textures);  // load the image
-                  params = {};  for (i in un) { params[i] = "sampler2D"; }  // add to frag params
+                  params = {};  for (i in un) params[i] = "sampler2D";  // add to frag params
                 }
                 return [createQuadShader(un, blocks, template.renderStep.fragment,params)];  // ane item could have multiple layers sharing the viewport
 						} else {
@@ -453,22 +451,24 @@ void main() {
         }
 
         function loadTextures(un) {
-          for (i in un) {
-            let xhr = new XMLHttpRequest();
-            xhr.open("GET", un[i], true);
-            xhr.responseType = "blob";
-            xhr.onload = function(e) {
-                let image = new Image();
-                image.onload = function() {
-                    console.log(i+ " loaded from "+un[i]);
-                    un[i] = GP.Util.buildImageTexture(this);
-                    window.URL.revokeObjectURL(image.src);  // clean up
-                };
-                image.src = window.URL.createObjectURL(this.response);
-            };
-            xhr.send(null);
-          }
+          for (i in un) loadTexture(un[i],i,un);
           return un;
+        }
+
+        function loadTexture(src, name, u) {
+          let xhr = new XMLHttpRequest();
+          xhr.open("GET", src, true);
+          xhr.responseType = "blob";
+          xhr.onload = function(e) {
+              let image = new Image();
+              image.onload = function() {
+                  console.log(name+ " loaded from "+src);
+                  u[name] = GP.Util.buildImageTexture(this);
+                  window.URL.revokeObjectURL(image.src);  // clean up
+              };
+              image.src = window.URL.createObjectURL(this.response);
+          };
+          xhr.send(null);
         }
 
 				function createQuadShader(u, blocks, fragglsl, fragparams) {		// A vanilla quad shader that uses the viewports projection
