@@ -397,8 +397,8 @@ void main() {
 						viewporter.step();  // Update the viewports
             uniforms.viewports = viewporter.getResultTexture();
 						stack.map((item,index) => {
-							viewporter.copyUnitToBlock(index,item[0].uniformBlocks[0]);	// All shaders in item must share uniformBlocks, first is always viewblock
-							item.map(layer => layer.step() );
+							viewporter.copyUnitToBlock(index,item[0].uniformBlocks[0]);	// All shaders in item must share uniformBlocks, first in array is always viewblock
+							item.map(layer => { if (layer.ready) layer.step(); else layer.ready=checkUniforms(layer);  } );
 						});
 
             if (clicks == 3 && checkStack == false) {
@@ -411,23 +411,24 @@ void main() {
             GP.Util.GPControls(loop);
         }
 
-				let items = itemlist.map(k => loadKit(k));
-        let nextcomp = 0;
+				let nextcomp = 0;
 				addSomething();    // to start with something
         //addItem([createTextureShader(uniforms,[viewBlock()],"viewports")]);  // Uncomment to see the viewports texture
         loop();
 
 				// Utility functions  ==================================
 				function addSomething() {
-					if (nextcomp > items.length-1) nextcomp = 0;    // Update Max here
-					addItem(items[nextcomp++]);
+					if (nextcomp > itemlist.length-1) nextcomp = 0;    // Update Max here
+					addItem(itemlist[nextcomp++]);
 				}
 
-				function addItem(item) {
+				function addItem(itemname) {
+          item = loadKit(itemname);
           for (let layer of item) {
-            if (layer.audio) {
+            layer.ready = !layer.uniforms || Object.keys(layer.uniforms).length == 0 ? true : checkUniforms(layer);  // Uniforms must be validated before step if there are textures to load
+            if (layer.audio) {   // Load audio and start when opening item
               layer.audio.map(at => getAudioData(at));
-            }  // Load audio and start when opening item
+            }
           }
 					if (stack.length == VIEWPORT_MAX) { alert("out of viewport slots"); return; }
 					viewporter.updateUnit(stack.length, {
@@ -469,6 +470,17 @@ void main() {
 					}
 				}
 
+        function checkUniforms(computer) {    // assumes all uniforms are textures
+          let result = true;
+          for (t in computer.uniforms) {
+            if (!(computer.uniforms[t] instanceof WebGLTexture)) {
+              console.log(t+" not ready");
+              return false;                // returns false if any are not WebGL textures
+            }
+          }
+          return result;
+        }
+
         function cleanStack() {
             let i=0, dead=0, units = viewporter.getResultUnits();  // array of viewport objects
             while (i<stack.length) {
@@ -479,9 +491,8 @@ void main() {
               if (units[i].time == -1.0) {   // dead unit
                 let deaditem = stack[i];
                 for (let layer of deaditem) {
-                  if (layer.audio) {
-                    layer.audio.map(at => dropAudio(at));
-                  }  // Stop audio playing and copying
+                  if (layer.audio) layer.audio.map(at => dropAudio(at));  // Stop audio playing and copying
+                  layer.destroy();
                 }
                 stack.splice(i,1);  // remove from stack
                 dead++;  // will have to copy up from now til end
@@ -490,14 +501,16 @@ void main() {
             checkStack = false;  // job is done
         }
 
-        function getResource(r) {
+        function getResource(r) {  // add other resources, microphone?, webcam?
           switch(r) {
             case "keyboard": return keyboardBlock;
           }
         }
 
         function loadTextures(un) {
-          for (i in un) loadTexture(un[i],i,un);
+          for (i in un) {
+            if (!(un[i] instanceof WebGLTexture)) loadTexture(un[i],i,un);
+          }
           return un;
         }
 
@@ -517,7 +530,7 @@ void main() {
           xhr.send(null);
         }
 
-        function dropAudio(texture) {
+        function dropAudio(texture) {    // called when a window with audio is closed
           if (texture.song) texture.song.stop();
           let i = 0;
           while (i < activeAudio.length) {                  // Remove from list
