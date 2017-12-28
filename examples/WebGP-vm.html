@@ -8,11 +8,15 @@
 		<script src="toys/Primitives.js"></script>
 		<script src="toys/Prism.js"></script>
     <script src="toys/Tunnel.js"></script>
+    <script src="toys/FirstAudio.js"></script>
+    <script src="toys/Terrain.js"></script>
 		<script src="toys/StarToy.js"></script>
     <script src="toys/PlasmaBall.js"></script>
     <script src="toys/Cubes.js"></script>
+    <script src="toys/Cube.js"></script>
     <script src="toys/ClockMin.js"></script>
     <script src="toys/ClockCircles.js"></script>
+    <script src="toys/HG-SDF.js"></script>
     <script src="toys/ClockSpiral.js"></script>
     <script src="toys/Galaxy.js"></script>
     <script src="toys/Water.js"></script>
@@ -21,7 +25,7 @@
 				const VIEWPORT_MAX = 1000;		// Max number of viewports
 				const MULTICLICK_MS = 330;	// ms delay to count clicks
 
-        let itemlist = ["Simplest","ClockMin","PlasmaBall","ClockSpiral","ClockCircles","Tunnel","StarToy","Galaxy","Prism","Cubes","Primitives","SDFx1"];  //
+        let itemlist = ["Simplest","ClockMin","Cube","FirstAudio","Terrain","PlasmaBall","HGSDF","ClockSpiral","ClockCircles","Tunnel","StarToy","Galaxy","Prism","Cubes","Primitives","SDFx1"];  //
 
 				const cornerVectors = `
 // These are used to locate the control points
@@ -86,19 +90,17 @@ mat4 projection(vec4 viewport) {
         stats.appendChild(document.createTextNode(""));
         GP.Util.butdiv.appendChild(stats);
 
-				// will deal with images later
-				const image1 = new Image();
-				const image2 = new Image();
-        // Textures are assigned with uniforms
+        // set up an audio context
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
+        // Texture used by viewporter to share viewport locations and sizes
         const VIEWTEXTURE_SIZE = GP.Util.data2d(VIEWPORT_MAX);
-        const uniforms = {
+        const uniforms = {   // vm system textures, not passed to items
             viewports: GP.Util.buildDataTexture(VIEWTEXTURE_SIZE,VIEWTEXTURE_SIZE)
         };
 
         // Feed mouse events into the uniformBlock data
-				let clickTime = 0.0, clicks = 0;
-        let mouse = [0.0, 0.0, -2.0, -2.0];
+				let clickTime = 0.0, clicks = 0, mouse = [0.0, 0.0, -2.0, -2.0];
 				window.addEventListener('mousemove', e => { mouse[0]=e.clientX; mouse[1]=canvas.clientHeight-e.clientY;  });
 				window.addEventListener('mouseup', e => { mouse[2]=-2.0; mouse[3]=-2.0;  });
       	window.addEventListener('mousedown', e => { clicks=(Date.now()-clickTime<=MULTICLICK_MS)?clicks+1:1; clickTime=Date.now(); mouse[2]=e.clientX; mouse[3]=canvas.clientHeight-e.clientY; });
@@ -128,18 +130,16 @@ mat4 projection(vec4 viewport) {
 					uniformBlock.set({ resolution: [canvas.clientWidth, canvas.clientHeight]});
 				});
 
-        const keyboardBlock = new GP.UniformBlock({		// This block is sent to interested components
+        const keyboardBlock = new GP.UniformBlock({		// This block is sent to interested components (names must correspond to values returned from keyevent.code)
             struct: {
-								ArrowDown: "int", ArrowUp: "int",	ArrowLeft: "int", ArrowRight: "int",
-                Escape: "int", Enter: "int", Minus: "int", Equal: "int", Delete: "int",
+								ArrowDown: "int", ArrowUp: "int",	ArrowLeft: "int", ArrowRight: "int", Escape: "int", Enter: "int", Minus: "int", Equal: "int", Delete: "int",
                 Backslash: "int", Insert: "int", Home: "int", End: "int",  PageUp: "int", PageDown: "int", Space: "int", Backspace: "int", Tab: "int",
                 F1: "int", F2: "int", F3: "int", F4: "int", F5: "int", F6: "int", F7: "int", F8: "int", F9: "int", F10: "int", F11: "int", F12: "int",
                 ShiftLeft: "int",  ShiftRight: "int", ControlLeft: "int", ControlRight: "int", AltLeft: "int", AltRight: "int",
                 Digit1: "int",  Digit2: "int",  Digit3: "int", Digit4: "int", Digit5: "int", Digit6: "int", Digit7: "int", Digit8: "int", Digit9: "int", Digit0: "int",
-                KeyA: "int", KeyB: "int", KeyC: "int", KeyD: "int", KeyE: "int", KeyF: "int", KeyG: "int",
-                KeyH: "int", KeyI: "int", KeyJ: "int", KeyK: "int", KeyL: "int", KeyM: "int", KeyN: "int",
-                KeyO: "int", KeyP: "int", KeyQ: "int", KeyR: "int", KeyS: "int", KeyT: "int", KeyU: "int",
-                KeyV: "int", KeyW: "int", KeyX: "int", KeyY: "int", KeyZ: "int"
+                KeyA: "int", KeyB: "int", KeyC: "int", KeyD: "int", KeyE: "int", KeyF: "int", KeyG: "int", KeyH: "int", KeyI: "int", KeyJ: "int",
+                KeyK: "int", KeyL: "int", KeyM: "int", KeyN: "int", KeyO: "int", KeyP: "int", KeyQ: "int", KeyR: "int", KeyS: "int", KeyT: "int",
+                KeyU: "int", KeyV: "int", KeyW: "int", KeyX: "int", KeyY: "int", KeyZ: "int"
             }
         });
 
@@ -206,7 +206,6 @@ void main() {
 			o_projection = i_projection;
 			o_vpmouse = i_vpmouse;
 			o_clicks = i_clicks;
-
 		} else {
 			o_now = u_now;
 			o_date = u_date;
@@ -328,7 +327,6 @@ void main() {
 				}
 	  }    // ends if clicked
 
-
 	}  // if time > 0.0  (active)
 
   o_projection = projection(nv);
@@ -378,10 +376,14 @@ void main() {
 });
 				let watch = GP.Util.stopWatch();
 				const stack = [];   // Viewports to draw, each element is an array of GPU shaders that share a viewport uniformBlock
+        let checkStack = false;
+        const activeAudio = [];
 
         function loop() {
             watch.mark();
 						GP.Util.clear();
+
+            activeAudio.map(audioTexture => audioTexture.update());  // update active audio textures
 
 						clicks = (Date.now()-clickTime <= MULTICLICK_MS) ? clicks : 0;   // clear clicks if time has passed
 						uniformBlock.set({
@@ -398,8 +400,12 @@ void main() {
 							item.map(layer => layer.step() );
 						});
 
+            if (clicks == 3 && checkStack == false) {
+              checkStack = true;
+            }
 						if (watch.check() % 100 === 0) {
                 stats.innerText = watch.stats();  watch.reset();
+                if (checkStack) cleanStack();   // something may have been deleted
             }
             GP.Util.GPControls(loop);
         }
@@ -417,7 +423,12 @@ void main() {
 				}
 
 				function addItem(item) {
-					if (stack.length == VIEWPORT_MAX) { console.error("out of viewport slots"); return; }
+          for (let layer of item) {
+            if (layer.audio) {
+              layer.audio.map(at => getAudioData(at));
+            }  // Load audio and start when opening item
+          }
+					if (stack.length == VIEWPORT_MAX) { alert("out of viewport slots"); return; }
 					viewporter.updateUnit(stack.length, {
 						viewport: [Math.random()*1.9-0.9, Math.random()*1.9-0.9, 400/canvas.clientWidth, 300/canvas.clientHeight],
 						time: 0.0   // starts this item in the viewport engine
@@ -431,18 +442,52 @@ void main() {
 							console.log("trying to load "+name+" and could not even get a fragment in the renderStep, so sad, all I got was "+template);
 					} else {
 						if (template.model = "quad") {
-								let blocks = [viewBlock()],  un = {}, params;
+								let blocks = [viewBlock()],  un = {}, params = {};
                 if (template.resources) template.resources.map(i => blocks.push(getResource(i)));  // add resources to uniform block array
                 if (template.textures) {
                   un = loadTextures(template.textures);  // load the image
-                  params = {};  for (i in un) params[i] = "sampler2D";  // add to frag params
+                  for (i in un) params[i] = "sampler2D";  // add to frag params
                 }
-                return [createQuadShader(un, blocks, template.renderStep.fragment,params)];  // ane item could have multiple layers sharing the viewport
+                if (template.audio) {
+                  let aa = [];  // audio attachments
+                  for (i in template.audio) {
+                    let audioTexture = GP.Util.buildAudioTexture(audioCtx,template.audio[i]);
+                    un[i] = audioTexture.texture;
+                    params[i] = "sampler2D"; // add to frag params
+                    aa.push(audioTexture);
+                  }
+                  let qs = createQuadShader(un, blocks, template.renderStep.fragment,params);
+                  qs.audio = aa;  // attach the audio textures to be loaded when item is opened
+                  return [qs];
+                } else {
+                    return [createQuadShader(un, blocks, template.renderStep.fragment,params)];  // ane item could have multiple layers sharing the viewport
+                }
 						} else {
 							console.log("Don't yet know how to load a model type of "+template.model+" for item "+name+", you may have to teach me");
 						}
 					}
 				}
+
+        function cleanStack() {
+            let i=0, dead=0, units = viewporter.getResultUnits();  // array of viewport objects
+            while (i<stack.length) {
+              if (dead > 0) {
+                units[i] = units[i+dead];   // advance by the number of dead encountered
+                viewporter.updateUnit(i,units[i]);
+              }
+              if (units[i].time == -1.0) {   // dead unit
+                let deaditem = stack[i];
+                for (let layer of deaditem) {
+                  if (layer.audio) {
+                    layer.audio.map(at => dropAudio(at));
+                  }  // Stop audio playing and copying
+                }
+                stack.splice(i,1);  // remove from stack
+                dead++;  // will have to copy up from now til end
+              } else i++;   // only advance if alive
+            }
+            checkStack = false;  // job is done
+        }
 
         function getResource(r) {
           switch(r) {
@@ -469,6 +514,40 @@ void main() {
               image.src = window.URL.createObjectURL(this.response);
           };
           xhr.send(null);
+        }
+
+        function dropAudio(texture) {
+          if (texture.song) texture.song.stop();
+          let i = 0;
+          while (i < activeAudio.length) {                  // Remove from list
+            if (activeAudio[i] == texture) {
+              activeAudio.splice(i,1);  // remove it
+              console.log("activeAudio "+i+" removed");
+              break;
+            } else i++;
+          }
+        }
+
+        // use XHR to load an audio track, and decodeAudioData to decode it and stick it in a buffer. Then we put the buffer into the source
+        function getAudioData(texture) {
+          console.log("getting "+texture.url);
+          request = new XMLHttpRequest();
+          request.open('GET', texture.url, true);
+          request.responseType = 'arraybuffer';
+          request.onload = function() {
+            audioCtx.decodeAudioData(request.response, function(buffer) {
+                texture.song = audioCtx.createBufferSource();
+                texture.song.buffer = buffer;
+                texture.song.connect(texture.analyser);
+                texture.analyser.connect(audioCtx.destination);
+                activeAudio.push(texture);                          // Add this audioTexture to active list
+                texture.song.addEventListener("ended", function() {
+                  dropAudio(texture);
+                });
+                texture.song.start();
+            });
+          }
+          request.send();
         }
 
 				function createQuadShader(u, blocks, fragglsl, fragparams) {		// A vanilla quad shader that uses the viewports projection

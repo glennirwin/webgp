@@ -759,6 +759,7 @@ function WebGP(canvas, context) {
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, width, height, 0, gl.RGBA, gl.FLOAT, data);  //, new Float32Array(width*height*4)
         return texture;
       },
+
       buildIntTexture(width, height, data) {  // To be tested
         // Create a texture to hold work data
         const texture = gl.createTexture();
@@ -771,16 +772,41 @@ function WebGP(canvas, context) {
         return texture;
       },
 
-        buildImageTexture(image) {   // Create a texture to hold an image
-            const texture = gl.createTexture();
-            gl.bindTexture(gl.TEXTURE_2D, texture);
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
-            return texture;
-        },
+      buildImageTexture(image) {   // Create a texture to hold an image
+          const texture = gl.createTexture();
+          gl.bindTexture(gl.TEXTURE_2D, texture);
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+          gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+          return texture;
+      },
+
+      buildAudioTexture(audioContext, url) {   // Create a texture to hold audio
+          let texture = gl.createTexture();
+          let analyser = audioContext.createAnalyser()
+          let binCount = analyser.frequencyBinCount;
+          console.log("binCount="+binCount);
+          let freqData = new Uint8Array(binCount);
+          let waveData = new Uint8Array(binCount);
+          gl.bindTexture(gl.TEXTURE_2D, texture);
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+          gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8, binCount, 2, 0, gl.RED, gl.UNSIGNED_BYTE, null);
+          return { url: url, binCount: binCount, texture: texture, analyser: analyser, freqData: freqData, waveData: waveData,
+            update() {
+              gl.bindTexture(gl.TEXTURE_2D, this.texture);
+              this.analyser.getByteFrequencyData(this.freqData);
+              gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, this.binCount, 1, gl.RED, gl.UNSIGNED_BYTE, this.freqData);
+              this.analyser.getByteTimeDomainData(this.waveData);
+              gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 1, this.binCount, 1, gl.RED, gl.UNSIGNED_BYTE, this.waveData);
+              gl.bindTexture(gl.TEXTURE_2D, null);
+            }
+          };
+      },
 
         buildVertexBuffer(struct, bufferData) {
             if (!bufferData) {
