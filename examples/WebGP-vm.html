@@ -4,28 +4,29 @@
 <body style="margin: 0; background: linear-gradient(to bottom right, black, #333333); ">
     <canvas style="display: block; cursor: pointer; user-select: none;"></canvas>
     <script src="../src/webgp2.js"></script>
-		<script src="toys/Simplest.js"></script>
+    <script src="toys/ClockMin.js"></script>
 		<script src="toys/Primitives.js"></script>
 		<script src="toys/Prism.js"></script>
+    <script src="toys/Galaxy.js"></script>
     <script src="toys/Tunnel.js"></script>
     <script src="toys/FirstAudio.js"></script>
     <script src="toys/Terrain.js"></script>
 		<script src="toys/StarToy.js"></script>
     <script src="toys/PlasmaBall.js"></script>
+    <script src="toys/ClockSpiral.js"></script>
+    <script src="toys/Cubescape.js"></script>
     <script src="toys/Cubes.js"></script>
-    <script src="toys/Cube.js"></script>
-    <script src="toys/ClockMin.js"></script>
+<!--    <script src="toys/Cube.js"></script>
+    <script src="toys/Simplest.js"></script>
     <script src="toys/ClockCircles.js"></script>
     <script src="toys/HG-SDF.js"></script>
-    <script src="toys/ClockSpiral.js"></script>
-    <script src="toys/Galaxy.js"></script>
     <script src="toys/Water.js"></script>
-		<script src="toys/SDFx1.js"></script>
+		<script src="toys/SDFx1.js"></script> -->
     <script>
 				const VIEWPORT_MAX = 1000;		// Max number of viewports
 				const MULTICLICK_MS = 330;	// ms delay to count clicks
-
-        let itemlist = ["Simplest","ClockMin","Cube","FirstAudio","Terrain","PlasmaBall","HGSDF","ClockSpiral","ClockCircles","Tunnel","StarToy","Galaxy","Prism","Cubes","Primitives","SDFx1"];  //
+                      // "Simplest",,"Cube","HGSDF","ClockCircles","SDFx1"
+        let itemlist = ["ClockMin","FirstAudio","Terrain","PlasmaBall","Cubescape","ClockSpiral","Tunnel","StarToy","Galaxy","Prism","Cubes","Primitives"];  //
 
 				const cornerVectors = `
 // These are used to locate the control points
@@ -411,12 +412,12 @@ void main() {
         }
 
 				let items = itemlist.map(k => loadKit(k));
-				addItem(items[1]);    // to start with something
+        let nextcomp = 0;
+				addSomething();    // to start with something
         //addItem([createTextureShader(uniforms,[viewBlock()],"viewports")]);  // Uncomment to see the viewports texture
         loop();
 
 				// Utility functions  ==================================
-				let nextcomp = 2;
 				function addSomething() {
 					if (nextcomp > items.length-1) nextcomp = 0;    // Update Max here
 					addItem(items[nextcomp++]);
@@ -561,7 +562,7 @@ void main() {
 		          renderStep: {  glsl: `void main() {  gl_Position = u_projection * vec4(i_position,0.0,1.0); 	}   `, fragment: fragglsl, fragmentParams: fragparams }
 		      });
 		    }
-        // utility function to return computer that renders a texture
+        // utility function to return computer that renders a texture out of a uniform
         function createTextureShader(u, blocks, texname) {
             return createQuadShader(u, blocks, `
                     void main() {
