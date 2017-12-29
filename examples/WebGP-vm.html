@@ -5,6 +5,7 @@
     <canvas style="display: block; cursor: pointer; user-select: none;"></canvas>
     <script src="../src/webgp2.js"></script>
     <script src="toys/ClockMin.js"></script>
+    <script src="toys/MicAnalysis.js"></script>
 		<script src="toys/Primitives.js"></script>
 		<script src="toys/Prism.js"></script>
     <script src="toys/Galaxy.js"></script>
@@ -26,7 +27,7 @@
 				const VIEWPORT_MAX = 1000;		// Max number of viewports
 				const MULTICLICK_MS = 330;	// ms delay to count clicks
                       // "Simplest",,"Cube","HGSDF","ClockCircles","SDFx1"
-        let itemlist = ["ClockMin","FirstAudio","Terrain","PlasmaBall","Cubescape","ClockSpiral","Tunnel","StarToy","Galaxy","Prism","Cubes","Primitives"];  //
+        let itemlist = ["ClockMin","MicAnalysis","Terrain","FirstAudio","PlasmaBall","Cubescape","ClockSpiral","Tunnel","StarToy","Galaxy","Prism","Cubes","Primitives"];  //
 
 				const cornerVectors = `
 // These are used to locate the control points
@@ -532,6 +533,7 @@ void main() {
 
         function dropAudio(texture) {    // called when a window with audio is closed
           if (texture.song) texture.song.stop();
+          if (texture.microphone) { texture.microphone.disconnect(); texture.microphone = null; }
           let i = 0;
           while (i < activeAudio.length) {                  // Remove from list
             if (activeAudio[i] == texture) {
@@ -542,26 +544,35 @@ void main() {
           }
         }
 
-        // use XHR to load an audio track, and decodeAudioData to decode it and stick it in a buffer. Then we put the buffer into the source
         function getAudioData(texture) {
           console.log("getting "+texture.url);
-          request = new XMLHttpRequest();
-          request.open('GET', texture.url, true);
-          request.responseType = 'arraybuffer';
-          request.onload = function() {
-            audioCtx.decodeAudioData(request.response, function(buffer) {
-                texture.song = audioCtx.createBufferSource();
-                texture.song.buffer = buffer;
-                texture.song.connect(texture.analyser);
+          if (texture.url === "microphone") {  // microphone needs permission
+              navigator.mediaDevices.getUserMedia({audio: true}).then( function(stream) {
+                texture.microphone = audioCtx.createMediaStreamSource(stream);
+                texture.microphone.connect(texture.analyser);
                 texture.analyser.connect(audioCtx.destination);
                 activeAudio.push(texture);                          // Add this audioTexture to active list
-                texture.song.addEventListener("ended", function() {
-                  dropAudio(texture);
+                console.log("microphone connected");
+              }, function(e) { console.error(e)});
+          } else {
+              request = new XMLHttpRequest();   // use XHR to load an audio track, and decodeAudioData to decode it to a buffer. Then we put the buffer into the source
+              request.open('GET', texture.url, true);
+              request.responseType = 'arraybuffer';
+              request.onload = function() {
+                audioCtx.decodeAudioData(request.response, function(buffer) {
+                    texture.song = audioCtx.createBufferSource();
+                    texture.song.buffer = buffer;
+                    texture.song.connect(texture.analyser);
+                    texture.analyser.connect(audioCtx.destination);
+                    activeAudio.push(texture);                          // Add this audioTexture to active list
+                    texture.song.addEventListener("ended", function() {
+                      dropAudio(texture);
+                    });
+                    texture.song.start();
                 });
-                texture.song.start();
-            });
+              }
+              request.send();
           }
-          request.send();
         }
 
 				function createQuadShader(u, blocks, fragglsl, fragparams) {		// A vanilla quad shader that uses the viewports projection
