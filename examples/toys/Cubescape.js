@@ -262,7 +262,7 @@ Kit.Cubescape = {
         	freqs[2] = texture( u_iChannel0, vec2( 0.15, 0.25 ) ).x;
         	freqs[3] = texture( u_iChannel0, vec2( 0.30, 0.25 ) ).x;
             //-----------
-            float time = 5.0 + 0.2*u_time + 5.0 * (u_vpmouse.z > -2.0 ? u_vpmouse.x - u_vpmouse.z : 0.0);
+            float time = 5.0 + 0.2*u_time + 5.0 * (u_mouse.z > -2.0 ? u_mouse.x - u_mouse.z : 0.0);
 
             vec3 tot = vec3(0.0);
             #ifdef ANTIALIAS

@@ -29,7 +29,7 @@ Kit.ClockSpiral = {
                 tau = 6.2832,
                   d = length(U), a = atan(U.x,U.y),
                   s = a - tau*4.*sqrt(d) +z,       // spiral coordinate
-                  t = u_time; //mod(u_date,1.0)*1440.0;
+                  t = u_time; //mod(u_date.x,1.0)*1440.0;
 
             O += -O
             // --- spiral

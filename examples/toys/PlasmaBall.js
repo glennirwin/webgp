@@ -156,7 +156,7 @@ Kit.PlasmaBall = {
         void main( )
         {
           vec2 p = ((inverse(u_projection) * vec4(gl_FragCoord.xy/u_resolution * 2.0 - 1.0,0.0,1.0)) ).xy * 0.5;
-        	vec2 um = u_vpmouse.z > -2.0 ? u_vpmouse.xy : vec2(0.0,0.0);
+        	vec2 um = u_mouse.zw;
 
         	//camera
         	vec3 ro = vec3(0.,0.,5.);

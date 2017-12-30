@@ -861,7 +861,7 @@ Kit.HGSDF = {
 
        // Simple model-view matrix:
        float ang, si, co;
-       ang = (u_vpmouse.z > -2.0) ? u_vpmouse.x:
+       ang = (u_mouse.z > -2.0) ? u_mouse.x:
           .5; //u_time*.25;
        si = sin(ang); co = cos(ang);
        mat4 cam_mat = mat4(
@@ -869,7 +869,7 @@ Kit.HGSDF = {
           0., 1., 0., 0.,
          -si, 0., co, 0.,
           0., 0., 0., 1.);
-       ang = (u_vpmouse.z > -2.0) ? u_vpmouse.y:
+       ang = (u_mouse.z > -2.0) ? u_mouse.y:
           .6; //u_time*.2;
        si = sin(ang); co = cos(ang);
        cam_mat = cam_mat * mat4(

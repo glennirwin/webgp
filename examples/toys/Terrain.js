@@ -182,13 +182,9 @@ Kit.Terrain = {
 
         void main()
         {
-        	//vec2 q = fragCoord.xy / iResolution.xy;
-          //vec2 xy = (inverse(u_projection) * vec4(gl_FragCoord.xy / u_resolution.xy * 2.0 - 1.0,1.0,1.0)).xy;
-          vec2 p = ((inverse(u_projection) * vec4(gl_FragCoord.xy/u_resolution * 2.0 - 1.0,1.0,1.0)) ).xy;
+            vec2 p = ((inverse(u_projection) * vec4(gl_FragCoord.xy/u_resolution * 2.0 - 1.0,1.0,1.0)) ).xy;
             vec2 q = (p + 1.0) / 2.0;
-        //    p.x *= u_viewport.z/u_viewport.w;
-            vec2 m = vec2(0.0);
-        	if( u_vpmouse.z>-2.0 ) m = (u_vpmouse.xy + 1.0) / 2.0;
+            vec2 m = (u_mouse.zw + 1.0) /2.0;
 
 
             //-----------------------------------------------------

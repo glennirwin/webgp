@@ -166,7 +166,7 @@ Kit.Prism = {
             //vec2 uv = (fragCoord.xy - iResolution.xy *.5)/ iResolution.y;
             vec2 uv = (inverse(u_projection) * vec4((gl_FragCoord.xy/u_resolution.xy * 2.0 - 1.0),1.0,1.0)).xy;
 
-              vec2 ms = u_vpmouse.xy;
+              vec2 ms = u_mouse.xy;
             fragColor = vec4( scene(uv * 4., ms * 4.), 1.0 );
           }
           `

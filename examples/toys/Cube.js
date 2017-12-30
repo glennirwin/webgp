@@ -159,7 +159,7 @@ vec3 pixelShader( in vec3 nor, in vec2 uv, in float z, in vec3 wnor )
 void main()
 {
   vec2 px = ((inverse(u_projection) * vec4(gl_FragCoord.xy/u_resolution * 2.0 - 1.0,0.0,1.0)) ).xy;
-//  vec2 um = u_vpmouse.z > -2.0 ? u_vpmouse.xy : vec2(0.0,0.0);
+//  vec2 um = u_mouse.z > -2.0 ? u_mouse.xy : vec2(0.0,0.0);
 
 
 	mat4 mdv = setTranslation( 0.0, 0.5, -5.0 ) *

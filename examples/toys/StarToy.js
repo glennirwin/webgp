@@ -164,8 +164,8 @@ void main()
 
     float time=u_time*1.0;
 
-	float mx = u_vpmouse.z>-2.0?(u_vpmouse.x*2.0-1.0)/u_viewport.z:time*0.025;
-    float my = u_vpmouse.z>-2.0?(u_vpmouse.y*2.0-1.0)/u_viewport.w:-0.6;
+	float mx = u_mouse.z>-2.0?(u_mouse.x*2.0-1.0)/u_viewport.z:time*0.025;
+    float my = u_mouse.z>-2.0?(u_mouse.y*2.0-1.0)/u_viewport.w:-0.6;
     vec2 rotate = vec2(mx,my);
 
     vec2 sins=sin(rotate);

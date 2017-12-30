@@ -15,10 +15,8 @@ Kit.ClockCircles = {
 
         void main()
         {
-        //  vec2 R = u_viewport.zw * 2.0 / u_resolution.xy;
           vec2 R = u_resolution.xy;
-  //              pos = (inverse(u_projection) * vec4(( 2.*gl_FragCoord.xy -R ) / u_resolution.y,0.0,1.0)).xy;
-          vec2 pos = (inverse(u_projection) * vec4((gl_FragCoord.xy/u_resolution.xy * 2.0 - 1.0),1.0,1.0)).xy;
+          vec2 pos = (inverse(u_projection) * vec4((gl_FragCoord.xy/R * 2.0 - 1.0),1.0,1.0)).xy;
         	float ang = mod(.5-atan(pos.y,pos.x)/6.283,1.), radius = length(pos);
 
         	// tunings
@@ -27,8 +25,7 @@ Kit.ClockCircles = {
         	float AI = (1.+sin(6.283*u_time/100.))/2.;
 
           int dayint;
-          float dayfrac = mod(u_date,1.0);
-        	float year = float(trunc(u_date/365.24)), month = float(trunc(u_date/30.44)), day = float(trunc(u_date)), seconds = dayfrac * 86400.0;
+          float year = u_date.x, month = u_date.y, day = u_date.z, seconds = mod(u_date.w,1.0) * 86400.0;
         	float v,I; 	vec3 col = vec3(0.);
 
         	v = mod(year/1000.,10.)/10.;

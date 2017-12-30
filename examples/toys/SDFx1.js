@@ -279,7 +279,7 @@ Kit.SDFx1 = {
           }
 
           void main()  {
-              vec2 mo = u_vpmouse.z > -2.0 ? vec2(1.0,-1.0) * (u_vpmouse.xy - u_vpmouse.zw) : vec2(0.0,0.0);  // drag from click
+              vec2 mo = u_mouse.z > -2.0 ? vec2(1.0,-1.0) * (u_mouse.xy - u_mouse.zw) : vec2(0.0,0.0);  // drag from click
             float time = 0.0; // + u_time;
               vec3 tot = vec3(0.0);
               for( int m=0; m<AA; m++ )
