@@ -76,6 +76,7 @@ mat4 projection(vec4 viewport) {
 							scale(viewport.z/2.0, viewport.w/2.0, 1.0);   }
 				`;
 
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();  // set up an audio context
         const canvas = document.querySelector("canvas");
 				canvas.width = window.innerWidth - 1;
         canvas.height = window.innerHeight - 1;
@@ -91,9 +92,6 @@ mat4 projection(vec4 viewport) {
         let stats = document.createElement("paragraph");
         stats.appendChild(document.createTextNode(""));
         GP.Util.butdiv.appendChild(stats);
-
-        // set up an audio context
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
 				const inputBlock = new GP.UniformBlock({		// This block is sent to the viewporter to relay to all blocks
             struct: {
@@ -141,7 +139,6 @@ mat4 projection(vec4 viewport) {
                 KeyU: "int", KeyV: "int", KeyW: "int", KeyX: "int", KeyY: "int", KeyZ: "int"
             }
         });
-
         // Feed keyboard events to the keyboard block
         function keyModifier(e) { return e.altKey && e.shiftKey ? 2048 : e.ctrlKey && e.shiftKey ? 4096 : e.ctrlKey && e.altKey ? 8192 :e.altKey ? 256 : e.shiftKey ? 512 : e.ctrlKey ? 1024 : 0; }
 				window.addEventListener('keydown', e => keyboardBlock.setWrite( {[e.code]: 1+keyModifier(e)} ));
@@ -149,7 +146,15 @@ mat4 projection(vec4 viewport) {
 				window.addEventListener('keypress', e => keyboardBlock.setWrite( {[e.code]: 2+keyModifier(e)} ));
         //        function logKey(t,e) { console.log("key"+t+" "+(e.altKey?"~":"")+(e.ctrlKey?"^":"")+(e.shiftKey?"_":"")+e.key+"  "+e.keyCode+"  "+e.code); }
 
-			// common structure used by each viewport  (the viewporter maintains them all as a set)
+        window.addEventListener("gamepadconnected", function(e) {
+          var gp = navigator.getGamepads()[e.gamepad.index];
+          console.log("Gamepad connected at index %d: %s. %d buttons, %d axes.", gp.index, gp.id, gp.buttons.length, gp.axes.length);
+        });
+        window.addEventListener("gamepaddisconnected", function(e) {
+            console.log("Gamepad disconnected from index %d: %s", e.gamepad.index, e.gamepad.id);
+        });
+
+			// common structure used by each viewport  (the viewporter maintains them all as vertex array)
 			const viewStructure = {
 					 viewport: "vec4",
               mouse: "vec4",
@@ -186,11 +191,9 @@ mat4 projection(vec4 viewport) {
 				return new GP.UniformBlock({ struct: viewStructure,  initialize: viewInitial });
 		 }
 
-     console.log(viewBlock());
-
      // Texture used by viewporter to share viewport locations and sizes
      const VIEWTEXTURE_SIZE = GP.Util.data2d(VIEWPORT_MAX);
-     const viewportUniforms = {   // vm system textures, not passed to items
+     const viewportUniforms = {   // not passed to items
          viewports: GP.Util.buildDataTexture(VIEWTEXTURE_SIZE,VIEWTEXTURE_SIZE)
      };
 
@@ -226,7 +229,6 @@ void main() {
 
 		} else {
 			o_now = u_now;
-//      o_date = vec4(trunc(u_date/365.24),trunc(u_date/30.44),trunc(mod(u_date,30.44)*30.44),mod(u_date,1.0)*86400.0);
       o_date = u_date;
 			o_delta = u_now - i_now;
 			o_time = i_time + o_delta/1000.0;  // Increment time for this unit
@@ -322,20 +324,12 @@ void main() {
               vec4 ovp = TEXTURE_FETCH(u_viewports,i,${VIEWTEXTURE_SIZE});
               if (ovp.x == -2.0) break;  // reached end
               if (ovp.y < nv.y + nv.w && ovp.y + ovp.w > nv.y) {  // if aligned vertically
-                if (nv.x > ovp.x && ovp.x + ovp.z > nv.x) {
-                  nv.x += AUTOMOVE_INCREMENT;  // I move right if other is overlap from left
-                }
-                if (nv.x < ovp.x && nv.x + nv.z > ovp.x) {
-                  nv.x -= AUTOMOVE_INCREMENT;  // I move left if other is overlap from right
-                }
+                if (nv.x > ovp.x && ovp.x + ovp.z > nv.x) nv.x += AUTOMOVE_INCREMENT;  // I move right if other is overlap from left
+                if (nv.x < ovp.x && nv.x + nv.z > ovp.x) nv.x -= AUTOMOVE_INCREMENT;  // I move left if other is overlap from right
               }
               if (ovp.x < nv.x + nv.z && ovp.x + ovp.z > nv.x) {  // if aligned horizontally
-                if (nv.y > ovp.y && ovp.y + ovp.w > nv.y) {
-                  nv.y += AUTOMOVE_INCREMENT;  // I move up
-                }
-                if (nv.y < ovp.y && nv.y + nv.w > ovp.y) {
-                  nv.y -= AUTOMOVE_INCREMENT;  // I move down
-                }
+                if (nv.y > ovp.y && ovp.y + ovp.w > nv.y) nv.y += AUTOMOVE_INCREMENT;  // I move up
+                if (nv.y < ovp.y && nv.y + nv.w > ovp.y) nv.y -= AUTOMOVE_INCREMENT;  // I move down
               }
             }
         }
@@ -406,16 +400,16 @@ void main() {
         const activeAudio = [];
         let date = new Date();
 
-        function loop() {
+        function loop() {   // The render loop
             watch.mark();
 						GP.Util.clear();
 
-            date.setTime(Date.now());
-						clicks = (Date.now()-clickTime <= MULTICLICK_MS) ? clicks : drag ? 1 : 0;   // clear clicks if time has passed
+						clicks = (Date.now()-clickTime <= MULTICLICK_MS) ? clicks : drag ? 1 : 0;   // clear multi-clicks if time has passed
             if (drag) {  // send mouse difference each cycle when dragging
               mouse[2] = mouse[0] - dragFrom[0];  dragFrom[0] = mouse[0];
               mouse[3] = mouse[1] - dragFrom[1];  dragFrom[1] = mouse[1];  // console.log(mouse);  // can be handy
             }
+            date.setTime(Date.now());  // update the date
 						inputBlock.set({
 								mouse: mouse,
                 date: [date.getFullYear(),date.getMonth()+1,date.getDate(),date.getHours()*3600+date.getMinutes()*60+date.getSeconds()],
@@ -425,12 +419,12 @@ void main() {
 						}).write();  // Write all at once - other values may have changed via events
             wheel = [0.0,0.0,0.0];
 
-            viewporter.step();  // Update the viewports
+            viewporter.step();  // Update/manipulate the viewports
             viewportUniforms.viewports = viewporter.getResultTexture();
 
             activeAudio.map(audioTexture => audioTexture.update());  // update active audio textures
 						stack.map((item,index) => {
-							viewporter.copyUnitToBlock(index,item[0].uniformBlocks[0]);	// All shaders in item must share uniformBlocks, first in array is always the viewblock
+							viewporter.copyUnitToBlock(index,item[0].uniformBlocks[0]);	// shaders in item must share uniformBlocks, first in array is always the viewblock
 							item.map(layer => { if (layer.ready) layer.step(); else layer.ready=checkUniforms(layer);  } );
 						});
 
