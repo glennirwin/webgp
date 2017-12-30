@@ -15,7 +15,7 @@ Kit.ClockMin = {
                   #define EPS .01
 
                   // --- access to the image of ascii code c - from https://www.shadertoy.com/view/MtyXRW
-                  #define C(c) T+= U.x<.0||U.x>1.||U.y<0.||U.y>1. ?vec4(0): texture( u_font0, vec2(1.0,-1.0)*(U/16. + fract( floor(vec2(c, 15.999-float((c)/16))) / 16.))); U.x-=.3;
+                  #define C(c) T+= U.x<.0||U.x>1.||U.y<0.||U.y>1. ?vec4(0): texture( u_font0, vec2(1.0,-1.0)*(U/16. + fract( floor(vec2(c, 15.999-float((c)/16))) / 16.))); U.x-=.38;
 
                   // --- display int2
                   float pInt(vec2 U, int n) {
@@ -58,16 +58,20 @@ Kit.ClockMin = {
                   float df_scene(vec2 uv)
                   {
                   	  float thrs = trunc(u_date.w / 3600.);
-                  	  float tmin = trunc(u_date.w - (thrs * 3600.) / 60.);
+                  	  float tmin = trunc((u_date.w - (thrs * 3600.)) / 60.);
                       float tsec = u_date.w - (thrs * 3600.) - (tmin * 60.0);
 
                       #ifdef DISCREET_SECONDS
                       	tsec = floor(tsec);
                       #endif
 
-                      float d = 0.4;
-                      float ct1 = .7 * pInt( (uv-d*sin(vec2(-0.5,1.5))) *2./d,   int(tmin) );
-                      float ct2 = .7 * pInt( (uv-d*sin(vec2(0.5,1.5))) *2./d,   int(tsec) );
+                      float d = 0.75;
+                      float ct1 = .7 * pInt( (uv-d*sin(vec2(-0.5,0.75))) *2./d,   int(u_date.x-2000.0) );
+                      float ct2 = .7 * pInt( (uv-d*sin(vec2(0.0,0.75))) *2./d,   int(u_date.y) );
+                      float ct3 = .7 * pInt( (uv-d*sin(vec2(0.5,0.75))) *2./d,   int(u_date.z) );
+                      float ct4 = .7 * pInt( (uv-d*sin(vec2(-0.5,-0.75))) *2./d,   int(thrs) );
+                      float ct5 = .7 * pInt( (uv-d*sin(vec2(0.0,-0.75))) *2./d,   int(tmin) );
+                      float ct6 = .7 * pInt( (uv-d*sin(vec2(0.5,-0.75))) *2./d,   int(tsec) );
 
                       vec2 c = vec2(0), u = vec2(0,1);
                       float c1 = sharpen(df_circ(uv, c, .90), EPS * 1.5);
@@ -76,7 +80,7 @@ Kit.ClockMin = {
                       float l1 = sharpen(df_line(uv, c, rotate(u,-thrs / 12.) * .60), EPS * 1.7);
                       float l2 = sharpen(df_line(uv, c, rotate(u,-tmin / 60.) * .80), EPS * 1.0);
                       float l3 = sharpen(df_line(uv, c, rotate(u,-tsec / 60.) * .85), EPS * 0.5);
-                      return max(max(max(max(max(max(max(l1, l2), l3), c1), c2), d1), ct1), ct2);
+                      return max(max(max(max(max(max(max(max(max(max(max(l1, l2), l3), c1), c2), d1), ct1), ct2), ct3), ct4), ct5), ct6);
                   }
 
                   void main( ) {

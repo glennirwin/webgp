@@ -484,7 +484,8 @@ function WebGP(canvas, context) {
         }
     }
 
-    // Object to wrap just the VertexArray buffers so we can share them amongst computers
+    // Object to wrap just the VertexArray buffers so we can share them amongst computers (must share iteration variable)
+    // NOTE: not sure this is working well, should probably avoid - seems to get confused when textureout is also involved
     class VertexArray {
         constructor(description) {
             this.units = description.units;
@@ -578,7 +579,7 @@ function WebGP(canvas, context) {
                 return this;
             };
 
-            // write all the buffer data to the uniform buffer
+            // write all the buffer data to the uniform buffer in the GPU
             this.write = function() {
                 gl.bindBuffer(gl.UNIFORM_BUFFER, this.buffer);
                 gl.bufferSubData(gl.UNIFORM_BUFFER, 0, this.data);

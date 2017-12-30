@@ -15,11 +15,11 @@
 		<script src="toys/StarToy.js"></script>
     <script src="toys/PlasmaBall.js"></script>
     <script src="toys/ClockSpiral.js"></script>
+    <script src="toys/ClockCircles.js"></script>
     <script src="toys/Cubescape.js"></script>
     <script src="toys/Cubes.js"></script>
 <!--    <script src="toys/Cube.js"></script>
     <script src="toys/Simplest.js"></script>
-    <script src="toys/ClockCircles.js"></script>
     <script src="toys/HG-SDF.js"></script>
     <script src="toys/Water.js"></script>
 		<script src="toys/SDFx1.js"></script> -->
@@ -27,7 +27,7 @@
 				const VIEWPORT_MAX = 1000;		// Max number of viewports
 				const MULTICLICK_MS = 330;	// ms delay to count clicks
                       // "Simplest",,"Cube","HGSDF","ClockCircles","SDFx1"
-        let itemlist = ["ClockMin","Primitives","PlasmaBall","MicAnalysis","Terrain","FirstAudio","ClockSpiral","Tunnel","StarToy","Galaxy","Prism","Cubes","Cubescape"];  //
+        let itemlist = ["ClockMin","Primitives","PlasmaBall","MicAnalysis","Terrain","FirstAudio","ClockSpiral","ClockCircles","Tunnel","StarToy","Galaxy","Prism","Cubes","Cubescape"];  //
 
 				const cornerVectors = `
 // These are used to locate the control points
@@ -98,19 +98,19 @@ mat4 projection(vec4 viewport) {
 				const inputBlock = new GP.UniformBlock({		// This block is sent to the viewporter to relay to all blocks
             struct: {
 								mouse: "vec4"
+                ,date: "vec4"
 								,resolution: "vec2"
 								,now: "float"
-								,date: "float"
+                ,clicks: "int"
                 ,wheel: "vec3"
-								,clicks: "int"
             },
             initialize: {
 								 mouse: [0.0,0.0,0.0,0.0]
+                ,date: [0.0,0.0,0.0,0.0]  // Date in days
                 ,resolution: [canvas.clientWidth, canvas.clientHeight]
-								,now: Date.now()
-								,date: Date.now()/86400000.0  // Date in days
+								,now: window.performance.now()
+                ,clicks: 0
                 ,wheel: [0.0,0.0,0.0]
-								,clicks: 0
             }
         });
 
@@ -226,7 +226,8 @@ void main() {
 
 		} else {
 			o_now = u_now;
-			o_date = vec4(trunc(u_date/365.24),trunc(u_date/30.44),trunc(mod(u_date,30.44)*30.44),mod(u_date,1.0)*86400.0);
+//      o_date = vec4(trunc(u_date/365.24),trunc(u_date/30.44),trunc(mod(u_date,30.44)*30.44),mod(u_date,1.0)*86400.0);
+      o_date = u_date;
 			o_delta = u_now - i_now;
 			o_time = i_time + o_delta/1000.0;  // Increment time for this unit
 			o_resolution = u_resolution;
@@ -403,11 +404,13 @@ void main() {
 				const stack = [];   // Viewports to draw, each element is an array of GPU shaders that share a viewport uniformBlock
         let checkStack = false;
         const activeAudio = [];
+        let date = new Date();
 
         function loop() {
             watch.mark();
 						GP.Util.clear();
 
+            date.setTime(Date.now());
 						clicks = (Date.now()-clickTime <= MULTICLICK_MS) ? clicks : drag ? 1 : 0;   // clear clicks if time has passed
             if (drag) {  // send mouse difference each cycle when dragging
               mouse[2] = mouse[0] - dragFrom[0];  dragFrom[0] = mouse[0];
@@ -415,8 +418,8 @@ void main() {
             }
 						inputBlock.set({
 								mouse: mouse,
-								now: window.performance.now(),  //newTime - startTime,    // time since start of browser, very accurate to micro seconds
-								date: Date.now() / 86400000.0,   // raw milliseconds too bug for a float (reduce to days)
+                date: [date.getFullYear(),date.getMonth()+1,date.getDate(),date.getHours()*3600+date.getMinutes()*60+date.getSeconds()],
+								now: window.performance.now(),     // time since start of browser, very accurate to micro seconds
                 wheel: wheel,
 								clicks: clicks
 						}).write();  // Write all at once - other values may have changed via events

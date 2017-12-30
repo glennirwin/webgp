@@ -25,7 +25,7 @@ Kit.ClockCircles = {
         	float AI = (1.+sin(6.283*u_time/100.))/2.;
 
           int dayint;
-          float year = u_date.x, month = u_date.y, day = u_date.z, seconds = mod(u_date.w,1.0) * 86400.0;
+          float year = u_date.x, month = u_date.y, day = u_date.z, seconds = u_date.w;
         	float v,I; 	vec3 col = vec3(0.);
 
         	v = mod(year/1000.,10.)/10.;
@@ -52,8 +52,7 @@ Kit.ClockCircles = {
         	if (u_Space > 0)setPos(.5, pos,ang,radius);
         	I = smoothstep(0.,1.,ang/v/AI);
         	col.b  += smoothstep(MA,-MA,ang-v)* I  *smoothstep(MR,-MR,abs(radius-.5)/.04-1.);
-//          v = floor(seconds/3600./12.);
-          v = floor(dayfrac * 12.);
+          v = floor(seconds/3600./12.);
         	if (u_Space > 0) setPos(.56, pos,ang,radius);
         	I = smoothstep(0.,1.,ang/v/AI);
         	col.rg += vec2(smoothstep(MA,-MA,ang-v)) *I *smoothstep(MR2,-MR2,abs(radius-.56)/.005-1.);
