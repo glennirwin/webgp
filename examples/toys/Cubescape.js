@@ -1,6 +1,6 @@
 if (!Kit) var Kit = {};
 Kit.Cubescape = {
-      model: "quad",
+      model: "QuadShader",
    textures: { iChannel1: "data/tex05.jpg" },
       audio: { iChannel0: "data/mzk03.mp3" },
  renderStep: {

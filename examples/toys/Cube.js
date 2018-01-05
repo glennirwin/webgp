@@ -1,6 +1,6 @@
 if (!Kit) var Kit = {};
 Kit.Cube = {
-      model: "quad",
+      model: "QuadShader",
       textures: { iChannel0: "data/tex07.jpg",
                   iChannel1: "data/tex05.jpg",
                   iChannel2: "data/tex01.jpg" },

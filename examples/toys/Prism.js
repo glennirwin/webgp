@@ -1,6 +1,6 @@
 if (!Kit) var Kit = {};
 Kit.Prism = {
-      model: "quad",
+      model: "QuadShader",
  renderStep: {
         fragment: `
           // Author: Rigel rui@gil.com

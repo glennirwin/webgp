@@ -1,6 +1,6 @@
 if (!Kit) var Kit = {};
 Kit.ShinySpheres = {
-      model: "quad",
+      model: "QuadShader",
       audio: { iChannel0: "data/mzk02.ogg"},
  renderStep: {
         fragment: `

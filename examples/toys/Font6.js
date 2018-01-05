@@ -1,6 +1,6 @@
 if (!Kit) var Kit = {};
 Kit.Font6 = {
-      model: "quad",
+      model: "QuadShader",
       textures: { iChannel0: "data/font0.png"},
  renderStep: {
         fragment: `// Origin: https://www.shadertoy.com/view/ltcXzs

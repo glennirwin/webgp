@@ -1,6 +1,6 @@
 if (!Kit) var Kit = {};
 Kit.PlasmaBall = {
-      model: "quad",
+      model: "QuadShader",
       textures: { noise: "data/tex11.png"},
  renderStep: {
         fragment: `

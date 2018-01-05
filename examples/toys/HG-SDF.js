@@ -1,6 +1,6 @@
 if (!Kit) var Kit = {};
 Kit.HGSDF = {
-      model: "quad",
+      model: "QuadShader",
  renderStep: {
         fragment: `
         //-----------------------------------------------------------------------------

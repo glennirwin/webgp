@@ -1,6 +1,6 @@
 if (!Kit) var Kit = {};
 Kit.Terrain = {
-      model: "quad",
+      model: "QuadShader",
       textures: { iChannel0: "data/tex09.jpg",
                   iChannel1: "data/tex07.jpg",
                   iChannel2: "data/tex11.png",

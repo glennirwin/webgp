@@ -1,6 +1,6 @@
 if (!Kit) var Kit = {};
 Kit.SDFx1 = {
-      model: "quad",
+      model: "QuadShader",
  renderStep: {
         fragment: `
           // The MIT License Copyright © 2013 Inigo Quilez

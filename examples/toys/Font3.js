@@ -1,6 +1,16 @@
 if (!Kit) var Kit = {};
 Kit.Font3 = {
-  model: "text",
+  model: "TextQuadShader",
+  text: `The quick brown fox jumped over the lazy dog
+
+This is an example of simple text output
+using a simple algorithm for positioning (newlines)
+Each character is an instance of a quad drawn
+by a 100% procedural font inside a fragment shader
+01234567890
+!@#$%^&*()-_=+[]{}\\|;:'"/?.>,<~
+ABCDEFGHIJKLMNOPQRSTUVWXYZ
+abcdefghijklmnopqrstuvwxyz`,
   sizing: { positioning: "character", fixedAspect: true, width: 13, height: 13, widthMultiplier: 0.45, scalable: true  },
  renderStep: {
         fragment: `// Functional Font code from: https://www.shadertoy.com/view/XdtSD4

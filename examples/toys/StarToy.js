@@ -1,6 +1,6 @@
 if (!Kit) var Kit = {};
 Kit.StarToy = {
-      model: "quad",
+      model: "QuadShader",
  renderStep: {
         fragment: `
 // Panteleymonov A K 2015   https://www.shadertoy.com/view/4lfSzS

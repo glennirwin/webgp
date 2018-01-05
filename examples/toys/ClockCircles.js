@@ -1,6 +1,6 @@
 if (!Kit) var Kit = {};
 Kit.ClockCircles = {
-      model: "quad",
+      model: "QuadShader",
       resources: ["keyboard"],
       renderStep: {
         fragment: `

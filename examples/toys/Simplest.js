@@ -1,6 +1,6 @@
 if (!Kit) var Kit = {};
 Kit.Simplest = {
-      model: "quad",
+      model: "QuadShader",
  renderStep: {
         fragment: `
                 void main() {

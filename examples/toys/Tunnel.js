@@ -1,6 +1,6 @@
 if (!Kit) var Kit = {};
 Kit.Tunnel = {
-      model: "quad",
+      model: "QuadShader",
  renderStep: {
         fragment: `  // This one copied from WikiPedia page about ShaderToy
                 void main() {

@@ -1,6 +1,6 @@
 if (!Kit) var Kit = {};
 Kit.ClockSpiral = {
-      model: "quad",
+      model: "QuadShader",
       textures: { font0: "data/font0.png"},
  renderStep: {
         fragment: `

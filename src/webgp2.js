@@ -299,7 +299,7 @@ function WebGP(canvas, context) {
         setUniform(tc, name, type, loc, val) {  // tc = texture count - will increment for each texture
             if (val === undefined) { let error = "can't set uniform "+name+" of type " + type + " with value " + val; Util.logger(error); console.error(new Error(error)); }
             switch (Util.glTypes[type].constant) {  // Getting the gl constant avoids a bunch of string compares
-                // Texture is first as it is mostly what this is for - use uniformBuffers for all other data
+                // Texture is first as it is mostly what this is for - you should use uniformBuffers for all other data as they are much faster
                 case gl.TEXTURE_2D:
                     if (this.textureBuffers && val === this.textureBuffers[this.iteration % 2]) {     // override from alternate buffer if this is a texture we will be writing to
                         console.error("warning: texture buffer flipped to avoid trying to read and write from same texture - you should look into this (check iterations)");

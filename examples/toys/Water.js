@@ -1,6 +1,6 @@
 if (!Kit) var Kit = {};
 Kit.Water = {
-      model: "quad",
+      model: "QuadShader",
  renderStep: {
         fragment: `
                 #define MAX_ITER 8

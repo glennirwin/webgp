@@ -1,6 +1,6 @@
 if (!Kit) var Kit = {};
 Kit.Font4 = {
-  model: "quad",
+  model: "QuadShader",
  renderStep: {
         fragment: `
 #define MAX_INT_DIGITS 4

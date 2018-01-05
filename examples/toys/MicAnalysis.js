@@ -1,6 +1,6 @@
 if (!Kit) var Kit = {};
 Kit.MicAnalysis = {
-      model: "quad",
+      model: "QuadShader",
       audio: { iChannel0: "microphone" },
  renderStep: {
         fragment: `

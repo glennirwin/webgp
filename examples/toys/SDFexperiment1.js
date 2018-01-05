@@ -1,6 +1,6 @@
 if (!Kit) var Kit = {};
 Kit.SDFexperiment1 = {
-      model: "quad",
+      model: "QuadShader",
  renderStep: {
         fragment: `
                 void main() {

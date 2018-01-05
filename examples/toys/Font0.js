@@ -1,6 +1,6 @@
 if (!Kit) var Kit = {};
 Kit.Font0 = {
-      model: "quad",
+      model: "QuadShader",
       textures: { iChannel0: "data/font0.png",
                   iChannel1: "data/tex05.jpg",
                   iChannel2: "data/tex01.jpg" },

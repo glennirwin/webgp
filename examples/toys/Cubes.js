@@ -1,6 +1,6 @@
 if (!Kit) var Kit = {};
 Kit.Cubes = {
-      model: "quad",
+      model: "QuadShader",
  renderStep: {
         fragment: `
           /*

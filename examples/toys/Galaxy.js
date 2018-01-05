@@ -1,6 +1,6 @@
 if (!Kit) var Kit = {};
 Kit.Galaxy = {
-      model: "quad",
+      model: "QuadShader",
  renderStep: {
         fragment: `
                  // Galaxy shader
