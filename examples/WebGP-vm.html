@@ -599,14 +599,14 @@ abcdefghijklmnopqrstuvwxyz`;
           let sizingCode = generateSizingCode(template);
           let instanceComputer = new GP.VertexComputer({   // each character will be handled separately
               units: units,
-              struct: { color: "vec4", textpos: "vec2", char: "int",  style: "int", cursor: "int", index: "int"  },
+              struct: { color: "vec4", textpos: "vec2", char: "int",  style: "int", cursor: "int", length: "int", marker: "int"  },
               initializeObject: (i) => {
-                if (i < text.length) {
-                    let r = { color: [0.2,1.0,0.2,1.0], textpos: [col++, line], char: i+npc < text.length ? text.charCodeAt(i+npc) : -1, style: i, cursor: 1, index: i };
+                if (i < text.length) {  // a simple text layout engine right here
+                    let r = { color: [0.2,1.0,0.2,1.0], textpos: [col++, line], char: i+npc < text.length ? text.charCodeAt(i+npc) : -1, style: i, cursor: 0, index: i, length: text.length, marker: 0 };
                     if (text.charCodeAt(i+npc) === 10 || text.charCodeAt(i+npc) === 13) { line++; col=0; }
                     return r;
                 } else {
-                    return { color: [0.2,1.0,0.2,1.0], textpos: [-1, -1], char: -1, style: 0, cursor: 0, index: i };
+                    return { color: [0.2,1.0,0.2,1.0], textpos: [col, line], char: -1, style: 0, cursor: 0, index: i, length: text.length, marker: 0 };
                 }
               },
               uniforms: u,
@@ -621,7 +621,8 @@ abcdefghijklmnopqrstuvwxyz`;
                   o_char = i_char;
                   o_style = i_style;
                   o_color = i_color;
-                  o_index = i_index;
+                  o_length = i_length;
+                  o_marker = i_marker;
                   ${sizingCode}
 
                   vec4 cc = TEXTURE_FETCH(u_feedbackTexture,newcursor,${texWidth});   // cc = character at cursor position
@@ -631,9 +632,9 @@ abcdefghijklmnopqrstuvwxyz`;
 
                   #define INSERT_LETTER(k,l) o_char = k >= 512 ? l : l + 32;
                   #define INSERT_SYMBOL(l) o_char = l;
-                  #define LETTER(k,l) if (k > 1) { if (gl_VertexID == i_cursor) INSERT_LETTER(k,l); if (i_cursor < gl_VertexID ) inserted=true; newcursor++; }
-                  #define SYMBOL(k,l) if (k == 2) { if (gl_VertexID == i_cursor) INSERT_SYMBOL(l); if (i_cursor < gl_VertexID ) inserted=true; newcursor++; }
-                  #define SHIFT_SYMBOL(k,l) if (k == 512) { if (gl_VertexID == i_cursor) INSERT_SYMBOL(l); if (i_cursor < gl_VertexID ) inserted=true; newcursor++; }
+                  #define LETTER(k,l) if (k > 1) { if (gl_VertexID == i_cursor) INSERT_LETTER(k,l); if (i_cursor < gl_VertexID ) inserted=true; o_length = i_length + 1; newcursor++; }
+                  #define SYMBOL(k,l) if (k == 2) { if (gl_VertexID == i_cursor) INSERT_SYMBOL(l); if (i_cursor < gl_VertexID ) inserted=true; o_length = i_length + 1; newcursor++; }
+                  #define SHIFT_SYMBOL(k,l) if (k == 512) { if (gl_VertexID == i_cursor) INSERT_SYMBOL(l); if (i_cursor < gl_VertexID ) inserted=true; o_length = i_length + 1; newcursor++; }
 
                   SYMBOL(u_Enter,10)  // Symbol keys
 
@@ -679,8 +680,8 @@ abcdefghijklmnopqrstuvwxyz`;
                   LETTER(u_KeyY,89)
                   LETTER(u_KeyZ,90)
 
-                  if (u_ArrowRight > 0) newcursor++;
-                  if (u_ArrowLeft > 0) newcursor--;
+                  if (u_ArrowRight > 0 && i_cursor < i_length) newcursor++;
+                  if (u_ArrowLeft > 0 && i_cursor > 0) newcursor--;
 
                   if (u_ArrowUp > 0) {   // scan backward for this x position on the prev line
                     vec4 c;
@@ -690,15 +691,15 @@ abcdefghijklmnopqrstuvwxyz`;
                     } while (c.w > -1.0 && (c.y == cc.y || (c.y == cc.y-1.0 && c.x > cc.x)) && newcursor > 0);
                   }
 
-                  if (u_ArrowDown > 0) {   // scan forward for this x position on the next line
+                  if (u_ArrowDown > 0 && i_cursor < i_length) {   // scan forward for this x position on the next line
                     vec4 c;
                     do {
                       c = TEXTURE_FETCH(u_feedbackTexture,newcursor+1,${texWidth});
                     } while (c.w > -1.0 && (c.y == cc.y || (c.y == cc.y+1.0 && c.x <= cc.x)) && ++newcursor < ${units});
                   }
 
-                if (u_Backspace == 1 && i_cursor > 0) { newcursor--; deleted=true; }  // backspace changes cursor so all must know
-                if (u_Delete == 1 && i_cursor <= gl_VertexID && i_cursor < ${units-1}) deleted=true;
+                if (u_Backspace == 1 && i_cursor > 0) { newcursor--; if (newcursor <= gl_VertexID) deleted=true;  o_length = i_length - 1; }  // backspace changes cursor so all must know
+                if (u_Delete == 1 && i_cursor < i_length) { if (i_cursor <= gl_VertexID) deleted=true; o_length = i_length - 1; }
 
                 if (inserted) {
                   vec4 cb = TEXTURE_FETCH(u_feedbackTexture,gl_VertexID-1,${texWidth});   // cb = character before
@@ -713,7 +714,7 @@ abcdefghijklmnopqrstuvwxyz`;
                   }
                 }
 
-                if (deleted && gl_VertexID < ${units}-1 && newcursor <= gl_VertexID) {
+                if (deleted && gl_VertexID <= i_length && newcursor <= gl_VertexID) {
                   vec4 ca = TEXTURE_FETCH(u_feedbackTexture,gl_VertexID+1,${texWidth});   // ca = character after
                   vec4 cur = newcursor==i_cursor ? cc : TEXTURE_FETCH(u_feedbackTexture,newcursor,${texWidth});   // cc = character at cursor position if moved (backspace)
                   o_char = int(ca.w);  // I become the one after me to shift everything back
