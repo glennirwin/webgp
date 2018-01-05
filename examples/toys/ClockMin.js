@@ -67,7 +67,7 @@ Kit.ClockMin = {
 
                       float d = 0.75;
                       float ct1 = .7 * pInt( (uv-d*sin(vec2(-0.5,0.75))) *2./d,   int(u_date.x-2000.0) );
-                      float ct2 = .7 * pInt( (uv-d*sin(vec2(0.0,0.75))) *2./d,   int(u_date.y) );
+                      float ct2 = .7 * pInt( (uv-d*sin(vec2(0.0,0.75))) *2./d,   int(u_date.y+1.0) );
                       float ct3 = .7 * pInt( (uv-d*sin(vec2(0.5,0.75))) *2./d,   int(u_date.z) );
                       float ct4 = .7 * pInt( (uv-d*sin(vec2(-0.5,-0.75))) *2./d,   int(thrs) );
                       float ct5 = .7 * pInt( (uv-d*sin(vec2(0.0,-0.75))) *2./d,   int(tmin) );

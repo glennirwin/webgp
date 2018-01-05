@@ -2,82 +2,41 @@
 <html>
 <head><title>WebGP-vm  A lightweight window manager for GPU viewports</title><meta charset="utf-8"></head>
 <body style="margin: 0; background: linear-gradient(to bottom right, black, #333333); ">
-    <canvas style="display: block; cursor: pointer; user-select: none;"></canvas>
+    <canvas id="c" style="display: block; cursor: default; user-select: none;"></canvas>
     <script src="../src/webgp2.js"></script>
     <script src="toys/ClockMin.js"></script>
+    <script src="toys/Font7.js"></script>
+    <script src="toys/Font6.js"></script>
+    <script src="toys/Font5.js"></script>
+    <script src="toys/Font3.js"></script>
+    <script src="toys/Primitives.js"></script>
+<!--
+  <script src="toys/vpInfo.js"></script>
     <script src="toys/MicAnalysis.js"></script>
-		<script src="toys/Primitives.js"></script>
-		<script src="toys/Prism.js"></script>
+    <script src="toys/Primitives.js"></script>
+    <script src="toys/Prism.js"></script>
     <script src="toys/Galaxy.js"></script>
     <script src="toys/Tunnel.js"></script>
     <script src="toys/FirstAudio.js"></script>
     <script src="toys/Terrain.js"></script>
-		<script src="toys/StarToy.js"></script>
+    <script src="toys/StarToy.js"></script>
     <script src="toys/PlasmaBall.js"></script>
     <script src="toys/ClockSpiral.js"></script>
     <script src="toys/ClockCircles.js"></script>
     <script src="toys/Cubescape.js"></script>
     <script src="toys/Cubes.js"></script>
-<!--    <script src="toys/Cube.js"></script>
+    <script src="toys/Cube.js"></script>
     <script src="toys/Simplest.js"></script>
     <script src="toys/HG-SDF.js"></script>
     <script src="toys/Water.js"></script>
-		<script src="toys/SDFx1.js"></script> -->
+		<script src="toys/SDFx1.js"></script>
+   -->
     <script>
 				const VIEWPORT_MAX = 1000;		// Max number of viewports
 				const MULTICLICK_MS = 330;	// ms delay to count clicks
-                      // "Simplest",,"Cube","HGSDF","ClockCircles","SDFx1"
-        let itemlist = ["ClockMin","Primitives","PlasmaBall","MicAnalysis","Terrain","FirstAudio","ClockSpiral","ClockCircles","Tunnel","StarToy","Galaxy","Prism","Cubes","Cubescape"];  //
-
-				const cornerVectors = `
-// These are used to locate the control points
-#define sizerVector vec2(1.0, 1.0)
-#define moverTVector vec2(0.5, 1.0)
-#define moverRVector vec2(1.0, 0.5)
-#define sizeVVector vec2(0.0, 1.0)
-#define sizeHVector vec2(1.0, 0.0)
-				`;
-
-				const matrixFunctions = `
-mat4 frustum(float angle_of_view, float aspect_ratio, float z_near, float z_far) {
-	 return mat4( vec4(1.0/tan(angle_of_view), 0.0, 0.0, 0.0),
-								vec4(0.0, aspect_ratio/tan(angle_of_view),  0.0, 0.0),
-								vec4(0.0, 0.0, (z_far+z_near)/(z_far-z_near), 1.0),
-								vec4(0.0, 0.0, -2.0*z_far*z_near/(z_far-z_near), 0.0) ); }
-
-mat4 scale(float x, float y, float z) {	return mat4(vec4(x,   0.0, 0.0, 0.0),
-																										vec4(0.0, y,   0.0, 0.0),
-																										vec4(0.0, 0.0, z,   0.0),
-																										vec4(0.0, 0.0, 0.0, 1.0)); }
-
-mat4 translate(float x, float y, float z) { return mat4(vec4(1.0, 0.0, 0.0, 0.0),
-																												vec4(0.0, 1.0, 0.0, 0.0),
-																												vec4(0.0, 0.0, 1.0, 0.0),
-																												vec4(x,   y,   z,   1.0)); }
-
-mat4 rotate_x(float theta) { return mat4(	vec4(1.0,         0.0,         0.0, 0.0),
-																					vec4(0.0,  cos(theta),  sin(theta), 0.0),
-																					vec4(0.0, -sin(theta),  cos(theta), 0.0),
-																					vec4(0.0,         0.0,         0.0, 1.0)); }
-
-mat4 rotate_y(float theta) { return mat4(	vec4(cos(theta), 0.0, sin(theta), 0.0),
-																					vec4(0.0,  1.0,  0.0, 0.0),
-																					vec4(-sin(theta), 0.0, cos(theta), 0.0),
-																					vec4(0.0,         0.0,         0.0, 1.0)); }
-
-mat4 rotate_z(float theta) {	return mat4( vec4(cos(theta), -sin(theta), 0.0, 0.0),
-																						vec4(sin(theta), cos(theta), 0.0, 0.0),
-																						vec4(0.0, 0.0, 1.0, 0.0),
-																						vec4(0.0, 0.0, 0.0, 1.0)); }
-
-mat4 projection(vec4 viewport) {
-		return  	//frustum(radians(45.0), u_resolution.x/u_resolution.y, 0.5, 5.0) *  // no frustum needed (yet?)
-							translate(viewport.x + viewport.z/2.0, viewport.y + viewport.w/2.0, 0.0) *
-							scale(viewport.z/2.0, viewport.w/2.0, 1.0);   }
-				`;
 
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();  // set up an audio context
-        const canvas = document.querySelector("canvas");
+        const canvas = document.getElementById("c");
 				canvas.width = window.innerWidth - 1;
         canvas.height = window.innerHeight - 1;
         const GP = WebGP(canvas);
@@ -88,7 +47,7 @@ mat4 projection(vec4 viewport) {
         GP.Util.createShaderControls("GP");
 				GP.Util.butdiv.append("           ");
 				GP.Util.createButton("+", "addSomething();");
-				GP.Util.createButton("Dump", "console.log(viewporter.getResultUnits().slice(0,stack.length));");
+				GP.Util.createButton("Dump", "console.log(viewporter.getResultUnits().slice(0,stack.length)); console.log(stack);");
         let stats = document.createElement("paragraph");
         stats.appendChild(document.createTextNode(""));
         GP.Util.butdiv.appendChild(stats);
@@ -127,7 +86,12 @@ mat4 projection(vec4 viewport) {
 					inputBlock.set({ resolution: [canvas.clientWidth, canvas.clientHeight]});
 				});
 
-        const keyboardBlock = new GP.UniformBlock({		// This block is sent to interested components (names must correspond to values returned from keyevent.code)
+        const keybufferBlock = new GP.UniformBlock({		// for serialized keyboard actions (will come one at a time)
+            struct: {
+								Keyboard: "ivec3"    // x=down, y=up, z=pressed
+            }
+        });
+        const keyboardBlock = new GP.UniformBlock({		// for direct keyboard sensing (names must correspond to values returned from keyevent.code)
             struct: {
 								ArrowDown: "int", ArrowUp: "int",	ArrowLeft: "int", ArrowRight: "int", Escape: "int", Enter: "int", Minus: "int", Equal: "int", Delete: "int",
                 Backslash: "int", Insert: "int", Home: "int", End: "int",  PageUp: "int", PageDown: "int", Space: "int", Backspace: "int", Tab: "int",
@@ -140,10 +104,19 @@ mat4 projection(vec4 viewport) {
             }
         });
         // Feed keyboard events to the keyboard block
-        function keyModifier(e) { return e.altKey && e.shiftKey ? 2048 : e.ctrlKey && e.shiftKey ? 4096 : e.ctrlKey && e.altKey ? 8192 :e.altKey ? 256 : e.shiftKey ? 512 : e.ctrlKey ? 1024 : 0; }
-				window.addEventListener('keydown', e => keyboardBlock.setWrite( {[e.code]: 1+keyModifier(e)} ));
-				window.addEventListener('keyup', e => keyboardBlock.setWrite( {[e.code]: -1-keyModifier(e)} ));
-				window.addEventListener('keypress', e => keyboardBlock.setWrite( {[e.code]: 2+keyModifier(e)} ));
+        const keyBuffer = [];
+        const keysToClear = [];  // to clear code after sending event
+        function keyModifier(e) { return e.altKey && e.shiftKey ? 2048 : e.ctrlKey && e.shiftKey ? 4096 : e.ctrlKey && e.altKey ? 8192 :e.altKey ? 256 : e.shiftKey ? 512 : e.ctrlKey ? 1024 : 1; }
+        function keyEvent(e,num) { keyboardBlock.setWrite( {[e.code]: num*keyModifier(e)} ); keysToClear.push(e.code); }
+        function clearKeys() {
+          while (keysToClear.length > 0) {
+            keyboardBlock.setWrite( { [keysToClear[0]]: 0} );
+            keysToClear.splice(0,1);
+          }
+        }
+				window.addEventListener('keydown', e => {keyEvent(e,1); console.log("down:"+e.code); }  );
+				window.addEventListener('keyup', e => keyEvent(e,-1) );
+				window.addEventListener('keypress', e => { keyEvent(e,2); console.log("pressed:"+e.code); });
         //        function logKey(t,e) { console.log("key"+t+" "+(e.altKey?"~":"")+(e.ctrlKey?"^":"")+(e.shiftKey?"_":"")+e.key+"  "+e.keyCode+"  "+e.code); }
 
         window.addEventListener("gamepadconnected", function(e) {
@@ -184,7 +157,7 @@ mat4 projection(vec4 viewport) {
  				    frame: 0,
             wheel: [0.0, 0.0, 0.0],
             state: 0,
-			 projection: [-2.0,-2.0,-2.0,-2.0]
+			 projection: [-2.0,-2.0,-2.0,-2.0,-2.0,-2.0,-2.0,-2.0,-2.0,-2.0,-2.0,-2.0,-2.0,-2.0,-2.0,-2.0]  // Should use a default identity matrix here I guess
 		 };
 
 		 function viewBlock() {							// Each viewbox array will share one of these
@@ -193,21 +166,18 @@ mat4 projection(vec4 viewport) {
 
      // Texture used by viewporter to share viewport locations and sizes
      const VIEWTEXTURE_SIZE = GP.Util.data2d(VIEWPORT_MAX);
-     const viewportUniforms = {   // not passed to items
-         viewports: GP.Util.buildDataTexture(VIEWTEXTURE_SIZE,VIEWTEXTURE_SIZE)
-     };
 
 		// Maintains viewBlock information, location and size for each component
 		const viewporter = new GP.VertexComputer({
 				units: 1000,
 				struct: viewStructure,
 				initializeObject: (i) => { return viewInitial;	},
-				uniforms: viewportUniforms,
         uniformBlocks: [inputBlock,keyboardBlock],
         textureOut: true,
+        textureFeedback: "viewports",
 				updateStep: {
             params: { viewports: "sampler2D" },
-						glsl: cornerVectors + matrixFunctions + GP.Util.dataTextureMacros + `
+						glsl: GP.Util.cornerVectors + GP.Util.matrixFunctions + GP.Util.dataTextureMacros + `
 #define VIEWPORT_MIN 0.07
 #define AUTOMOVE_INCREMENT 0.01
 
@@ -355,12 +325,11 @@ void main() {
   gl_Position = TEXTURE_POS(gl_VertexID, ${VIEWTEXTURE_SIZE});
 }`    },
 								renderStep: {			// Renders nearest appropriate control point for a viewport
-										glsl: cornerVectors+`
+										glsl: GP.Util.cornerVectors+`
 #define POINTSIZE_MAX 10.0
 #define CLICKED_COLOR vec4(1.0,1.0,1.0,0.6)
 #define HOVER_COLOR vec4(0.0,1.0,0.0,0.6)
 #define TIME_MULT 10.0    // Animation time in ms
-#define PULSE_SIZE 3.0
 #define MOVE_FACTOR 150.0
 vec4 jitter() {	return vec4(cos(i_time*TIME_MULT)/MOVE_FACTOR,sin(i_time*TIME_MULT)/MOVE_FACTOR*(i_resolution.x/i_resolution.y),0.,0.);	}
 
@@ -386,7 +355,6 @@ void main() {
 				gl_Position =  i_projection * vec4( (abs(vpmouse.x) > abs(vpmouse.y) ? sizeHVector : sizeVVector) * sign(vpmouse.xy),0.0,1.0)
 						+ (dist < CLICK_THRESHOLD	? vec4(0.,0.,0.,0.)	: abs(vpmouse.x) > abs(vpmouse.y) ? vec4(jitter().x,0.,0.,0.) : vec4(0.,jitter().y,0.,0.));
 		}
-		//pulse = (dist < CLICK_THRESHOLD ? sin(i_time*TIME_MULT*10.0) * PULSE_SIZE : 0.0 );
 		gl_PointSize = dist < CLICK_THRESHOLD && u_clicks > 0 ? POINTSIZE_MAX * 1.5 :    // when clicked
 										max(0.5, POINTSIZE_MAX - dist/md * POINTSIZE_MAX); // + pulse;
 		vertexColor = dist < CLICK_THRESHOLD && u_clicks > 0 ? (u_clicks > 1 ? vec4(1.0,0.0,0.0,1.0) : CLICKED_COLOR) :    // when clicked, white
@@ -412,7 +380,7 @@ void main() {
             date.setTime(Date.now());  // update the date
 						inputBlock.set({
 								mouse: mouse,
-                date: [date.getFullYear(),date.getMonth()+1,date.getDate(),date.getHours()*3600+date.getMinutes()*60+date.getSeconds()],
+                date: [date.getFullYear(),date.getMonth(),date.getDate(),date.getHours()*3600+date.getMinutes()*60+date.getSeconds()],
 								now: window.performance.now(),     // time since start of browser, very accurate to micro seconds
                 wheel: wheel,
 								clicks: clicks
@@ -420,7 +388,6 @@ void main() {
             wheel = [0.0,0.0,0.0];
 
             viewporter.step();  // Update/manipulate the viewports
-            viewportUniforms.viewports = viewporter.getResultTexture();
 
             activeAudio.map(audioTexture => audioTexture.update());  // update active audio textures
 						stack.map((item,index) => {
@@ -428,6 +395,7 @@ void main() {
 							item.map(layer => { if (layer.ready) layer.step(); else layer.ready=checkUniforms(layer);  } );
 						});
 
+            clearKeys();
             if (clicks == 3 && checkStack == false) {
               checkStack = true;
             }
@@ -438,24 +406,24 @@ void main() {
             GP.Util.GPControls(loop);
         }
 
-				let nextcomp = 0;
+        // it all starts here, setup an itemlist, and go looping
+        let itemlist = Object.keys(Kit);
+				let nextcomp = 1;
 				addSomething();    // to start with something
-        //addItem([createTextureShader(uniforms,[viewBlock()],"viewports")]);  // Uncomment to see the viewports texture
+        //addItem([createTextureShader(viewporter.uniforms,[viewBlock()],"viewports")]);  // Uncomment to see the viewports texture
         loop();
 
 				// Utility functions  ==================================
 				function addSomething() {
 					if (nextcomp > itemlist.length-1) nextcomp = 0;    // Update Max here
-					addItem(itemlist[nextcomp++]);
+					addItem(loadItem(itemlist[nextcomp++]));
 				}
 
-				function addItem(itemname) {
-          item = loadKit(itemname);
+				function addItem(item) {
+          console.log(item);
           for (let layer of item) {
             layer.ready = !layer.uniforms || Object.keys(layer.uniforms).length == 0 ? true : checkUniforms(layer);  // Uniforms must be validated before step if there are textures to load
-            if (layer.audio) {   // Load audio and start when opening item
-              layer.audio.map(at => getAudioData(at));
-            }
+            if (layer.audio) layer.audio.map(at => getAudioData(at));   // Load audio and start when opening item
           }
 					if (stack.length == VIEWPORT_MAX) { alert("out of viewport slots"); return; }
 					viewporter.updateUnit(stack.length, {
@@ -465,12 +433,37 @@ void main() {
 					stack.push(item);
 				}
 
-				function loadKit(name) {
+				function loadItem(name) {    // set up to load array of layers for each viewport, only one now
+          //let vpInfoTemplate = Kit["vpInfo"];
+
+          let testtext = `The quick brown fox
+jumped over the lazy dog
+
+This is an example of simple text output and edit
+using a simple algorithm for positioning (newlines)
+Each character is an instance of a quad drawn
+by a 100% procedural font inside a fragment shader
+01234567890
+!@#$%^&*()-_=+[]{}\\|;:'"/?.>,<~
+ABCDEFGHIJKLMNOPQRSTUVWXYZ
+abcdefghijklmnopqrstuvwxyz`;
 					let template = Kit[name];
 					if (!template || !template.model || !template.renderStep.fragment) {
 							console.log("trying to load "+name+" and could not even get a fragment in the renderStep, so sad, all I got was "+template);
 					} else {
-						if (template.model = "quad") {
+            if (template.model === "text") {
+              let blocks = [viewBlock()],  un = {}, params = {};
+              if (template.resources) template.resources.map(i => blocks.push(getResource(i)));  // add resources to uniform block array
+              if (template.textures) {
+                un = loadTextures(template.textures);  // load the image
+                for (i in un) params[i] = "sampler2D";  // add to frag params
+              }
+              if (template.sizing && template.sizing.positioning === "autochar") {  // GPU based character positioning (like terminal screens textpos is col(x),line(y))
+                return  [createTextComputer("HelloGPU: "+name+" "+testtext, un, blocks, template, params)];
+              } else {
+                return [createTextQuadShader("Hello: "+name+" "+testtext, un, blocks, template, params)];
+              }
+            } else if (template.model === "quad") {
 								let blocks = [viewBlock()],  un = {}, params = {};
                 if (template.resources) template.resources.map(i => blocks.push(getResource(i)));  // add resources to uniform block array
                 if (template.textures) {
@@ -487,9 +480,9 @@ void main() {
                   }
                   let qs = createQuadShader(un, blocks, template.renderStep.fragment,params);
                   qs.audio = aa;  // attach the audio textures to be loaded when item is opened
-                  return [qs];
+                  return [qs];  //,createQuadShader(un,blocks,vpInfoTemplate.renderStep.fragment)];
                 } else {
-                    return [createQuadShader(un, blocks, template.renderStep.fragment,params)];  // ane item could have multiple layers sharing the viewport
+                    return [createQuadShader(un, blocks, template.renderStep.fragment,params)]; //,createQuadShader(un,blocks,vpInfoTemplate.renderStep.fragment)];  // ane item could have multiple layers sharing the viewport
                 }
 						} else {
 							console.log("Don't yet know how to load a model type of "+template.model+" for item "+name+", you may have to teach me");
@@ -599,6 +592,272 @@ void main() {
           }
         }
 
+        function createTextComputer(text,u, blocks, template, fragparams) {		// A text shader that uses GPU to calculate char position and put out texture to be rendered via quad shader
+          let line = 0, col = 0, npc = 0, tcols = 30, tlines = 10;
+          let units = text.length + 100;
+          let texWidth = GP.Util.data2d(units);
+          let sizingCode = generateSizingCode(template);
+          let instanceComputer = new GP.VertexComputer({   // each character will be handled separately
+              units: units,
+              struct: { color: "vec4", textpos: "vec2", char: "int",  style: "int", cursor: "int", index: "int"  },
+              initializeObject: (i) => {
+                if (i < text.length) {
+                    let r = { color: [0.2,1.0,0.2,1.0], textpos: [col++, line], char: i+npc < text.length ? text.charCodeAt(i+npc) : -1, style: i, cursor: 1, index: i };
+                    if (text.charCodeAt(i+npc) === 10 || text.charCodeAt(i+npc) === 13) { line++; col=0; }
+                    return r;
+                } else {
+                    return { color: [0.2,1.0,0.2,1.0], textpos: [-1, -1], char: -1, style: 0, cursor: 0, index: i };
+                }
+              },
+              uniforms: u,
+		          uniformBlocks: blocks,
+              textureOut: true,
+              textureFeedback: "feedbackTexture",   // will be added to the uniforms and updated for the params
+              updateStep: {  params: { feedbackTexture: "sampler2D" },  // could add automagically but useful to note for glsl usage
+                glsl: GP.Util.dataTextureMacros + `
+                void main() {
+                  int newcursor = i_cursor;
+                  vec2 newpos = i_textpos;
+                  o_char = i_char;
+                  o_style = i_style;
+                  o_color = i_color;
+                  o_index = i_index;
+                  ${sizingCode}
+
+                  vec4 cc = TEXTURE_FETCH(u_feedbackTexture,newcursor,${texWidth});   // cc = character at cursor position
+
+                  bool inserted = false;
+                  bool deleted = false;
+
+                  #define INSERT_LETTER(k,l) o_char = k >= 512 ? l : l + 32;
+                  #define INSERT_SYMBOL(l) o_char = l;
+                  #define LETTER(k,l) if (k > 1) { if (gl_VertexID == i_cursor) INSERT_LETTER(k,l); if (i_cursor < gl_VertexID ) inserted=true; newcursor++; }
+                  #define SYMBOL(k,l) if (k == 2) { if (gl_VertexID == i_cursor) INSERT_SYMBOL(l); if (i_cursor < gl_VertexID ) inserted=true; newcursor++; }
+                  #define SHIFT_SYMBOL(k,l) if (k == 512) { if (gl_VertexID == i_cursor) INSERT_SYMBOL(l); if (i_cursor < gl_VertexID ) inserted=true; newcursor++; }
+
+                  SYMBOL(u_Enter,10)  // Symbol keys
+
+                  SYMBOL(u_Space,32)  // Symbol keys
+                  SYMBOL(u_Digit0,48)
+                  SYMBOL(u_Digit1,49)
+                  SYMBOL(u_Digit2,50)
+                  SYMBOL(u_Digit3,51)
+                  SYMBOL(u_Digit4,51)
+                  SYMBOL(u_Digit5,53)
+                  SYMBOL(u_Digit6,54)
+                  SYMBOL(u_Digit7,55)
+                  SYMBOL(u_Digit8,56)
+                  SYMBOL(u_Digit9,57)
+
+                  SHIFT_SYMBOL(u_Digit1,33)  // !
+                  SHIFT_SYMBOL(u_Digit2,64)  // @
+
+                  LETTER(u_KeyA,65)    // Key pressed keys
+                  LETTER(u_KeyB,66)
+                  LETTER(u_KeyC,67)
+                  LETTER(u_KeyD,68)
+                  LETTER(u_KeyE,69)
+                  LETTER(u_KeyF,70)
+                  LETTER(u_KeyG,71)
+                  LETTER(u_KeyH,72)
+                  LETTER(u_KeyI,73)
+                  LETTER(u_KeyJ,74)
+                  LETTER(u_KeyK,75)
+                  LETTER(u_KeyL,76)
+                  LETTER(u_KeyM,77)
+                  LETTER(u_KeyN,78)
+                  LETTER(u_KeyO,79)
+                  LETTER(u_KeyP,80)
+                  LETTER(u_KeyQ,81)
+                  LETTER(u_KeyR,82)
+                  LETTER(u_KeyS,83)
+                  LETTER(u_KeyT,84)
+                  LETTER(u_KeyU,85)
+                  LETTER(u_KeyV,86)
+                  LETTER(u_KeyW,87)
+                  LETTER(u_KeyX,88)
+                  LETTER(u_KeyY,89)
+                  LETTER(u_KeyZ,90)
+
+                  if (u_ArrowRight > 0) newcursor++;
+                  if (u_ArrowLeft > 0) newcursor--;
+
+                  if (u_ArrowUp > 0) {   // scan backward for this x position on the prev line
+                    vec4 c;
+                    do {
+                      newcursor--;
+                      c = TEXTURE_FETCH(u_feedbackTexture,newcursor,${texWidth});
+                    } while (c.w > -1.0 && (c.y == cc.y || (c.y == cc.y-1.0 && c.x > cc.x)) && newcursor > 0);
+                  }
+
+                  if (u_ArrowDown > 0) {   // scan forward for this x position on the next line
+                    vec4 c;
+                    do {
+                      c = TEXTURE_FETCH(u_feedbackTexture,newcursor+1,${texWidth});
+                    } while (c.w > -1.0 && (c.y == cc.y || (c.y == cc.y+1.0 && c.x <= cc.x)) && ++newcursor < ${units});
+                  }
+
+                if (u_Backspace == 1 && i_cursor > 0) { newcursor--; deleted=true; }  // backspace changes cursor so all must know
+                if (u_Delete == 1 && i_cursor <= gl_VertexID && i_cursor < ${units-1}) deleted=true;
+
+                if (inserted) {
+                  vec4 cb = TEXTURE_FETCH(u_feedbackTexture,gl_VertexID-1,${texWidth});   // cb = character before
+                  o_char = int(cb.w);  // I become the one before me so shift everything forward
+                  o_style = int(cb.z);
+                  newpos = cb.xy;
+                  if (u_Enter == 2) {                        // inserting a return moves lines down
+                    if (newpos.y == cc.y) newpos.x -= cc.x;
+                    newpos.y += 1.0;
+                  } else {                                  // stuff on same line moves forward
+                    if (newpos.y == cc.y) newpos.x += 1.0;
+                  }
+                }
+
+                if (deleted && gl_VertexID < ${units}-1 && newcursor <= gl_VertexID) {
+                  vec4 ca = TEXTURE_FETCH(u_feedbackTexture,gl_VertexID+1,${texWidth});   // ca = character after
+                  vec4 cur = newcursor==i_cursor ? cc : TEXTURE_FETCH(u_feedbackTexture,newcursor,${texWidth});   // cc = character at cursor position if moved (backspace)
+                  o_char = int(ca.w);  // I become the one after me to shift everything back
+                  o_style = int(ca.z);
+                  newpos = ca.xy;
+                  if (cur.w == 10.0 || cur.w == 13.0) {
+                    newpos.y -= 1.0;
+                    if (newpos.y == cur.y) newpos.x += cur.x;  // position at end of line
+                  } else {
+                    if (newpos.y == cur.y) newpos.x -= 1.0;    // stuff on same line moves back
+                  }
+                }
+
+                if (u_clicks == 1) {   // find the closest character on the line - TODO: not very accurate
+                  vec2 m = (u_mouse.xy + 1.0) / 2.0;
+                  float line = ((1.0-m.y)/(ch*2.0)) / 2.0;
+                  float col = m.x/(cw*2.0*wm) /2.0;
+                  float dist = 2.0;
+                  int cchar = -1;
+                  for (int i=0;i<${units};i++) {
+                    vec4 c = TEXTURE_FETCH(u_feedbackTexture,i,${texWidth});
+                    float d = distance(c.xy,vec2(col,line));
+                    if (d < dist) {
+                      dist = d;
+                      cchar = i;
+                    }
+                  }
+                  if (cchar > -1) {
+                    newcursor = cchar;
+                  }
+                }
+
+                o_textpos = newpos;
+                o_cursor = newcursor < 0 ? 0 : newcursor >= ${units} ? ${units-1} : newcursor;
+                gl_Position = TEXTURE_POS(gl_VertexID,${texWidth});
+                textureColor = vec4(newpos,float(o_style),float(o_char));
+              }   ` },
+                renderStep: {			                                            // Renders the cursor at the insert position
+                    glsl: GP.Util.matrixFunctions + GP.Util.cornerVectors+`
+              #define POINTSIZE_MAX 10.0
+              #define CLICKED_COLOR vec4(1.0,1.0,1.0,0.6)
+              #define HOVER_COLOR vec4(0.0,1.0,0.0,0.6)
+              #define TIME_MULT 30.0    // Animations per second
+              vec4 jitterV(float ch) {	return vec4(0.0,sin(u_time*TIME_MULT)*ch/3.0,0.,0.);	}  // only vertically for insert cursor
+              void main() {
+                  ${sizingCode}
+                  if (i_cursor == gl_VertexID) {
+                    gl_Position =  projection(vec4(u_viewport.x+cw*i_textpos.x*wm,u_viewport.y+u_viewport.w-((i_textpos.y+1.0)*ch), cw , ch)) * vec4(-1.0*wm,0.0,0.0,1.0) + jitterV(ch);
+                    gl_PointSize = 4.0;
+                    vertexColor = vec4(1.0,1.0,1.0,0.9);
+                  }
+              }`}
+          });
+
+        // addItem([createTextureShader(u,[viewBlock()],"feedbackTexture")],100.0);  // Uncomment to see the texture
+
+          return new GP.VertexComputer({    // Draw/fill a set of quads specified by an array
+		          units: 6,
+              type: GP.gl.TRIANGLES,
+              struct: { position: "vec2" },
+              initializeBuffer: GP.Util.quadBuffer(),
+              uniforms: u,
+		          uniformBlocks: blocks,
+              instanceComputer: instanceComputer,
+		          renderStep: {  glsl: GP.Util.matrixFunctions + `
+                out mat4 newproj;
+                void main() {
+                  v_textpos = i_textpos;
+                  v_char = i_char;
+                  v_style = i_style;
+                  v_cursor = i_cursor;
+                  v_color = i_color;
+                  ${sizingCode}
+                  newproj = projection(vec4(u_viewport.x+cw*i_textpos.x*wm,u_viewport.y+u_viewport.w-((i_textpos.y+1.0)*ch), cw ,ch));
+                  gl_Position = newproj * vec4(i_position,0.0,1.0) ;
+                }   `, fragment: template.renderStep.fragment,
+                  fragmentParams: fragparams }
+		      });
+		    }
+
+        function createTextQuadShader(text,u, blocks, template, fragparams) {		// A text shader that uses GPU to calculate char position and put out texture to be rendered via quad shader
+          let line = 0, col = 0, npc = 0; tcols = 30, tlines = 10;
+          let instanceArray = new GP.InstanceArray({
+              units: text.length,
+              divisor: 1,
+              struct: { textpos: "vec2", char: "int",  style: "int"  },
+              initializeObject: (i) => {
+                if (text.charCodeAt(i+npc) === 10 || text.charCodeAt(i+npc) === 13) { line++; col=0; npc++;}
+                return { textpos: [col++, line], char: i+npc < text.length ? text.charCodeAt(i+npc) : 0, style: i };
+              }
+          });
+          return new GP.VertexComputer({    // Draw/fill a set of quads specified by an array
+		          units: 6,
+              type: GP.gl.TRIANGLES,
+              struct: { position: "vec2" },
+              initializeBuffer: GP.Util.quadBuffer(),
+              uniforms: u,
+		          uniformBlocks: blocks,
+              instanceArray: instanceArray,
+		          renderStep: {  glsl: GP.Util.matrixFunctions + `
+                out mat4 newproj;
+
+                void main() {
+                  v_textpos = i_textpos;
+                  v_char = i_char;
+                  v_style = i_style;
+
+                  ${generateSizingCode(template)}
+                  newproj = projection(vec4(u_viewport.x+cw*i_textpos.x*wm,u_viewport.y+u_viewport.w-((i_textpos.y+1.0)*ch), cw ,ch));
+                  gl_Position = newproj * vec4(i_position,0.0,1.0) ;
+                }   `, fragment: template.renderStep.fragment,
+                  fragmentParams: fragparams }
+		      });
+		    }
+
+        function generateSizingCode(template) {
+            if (template.sizing && template.sizing.fixedAspect) {
+              if (template.sizing.scalable) {
+                return `
+                  float cw = ${template.sizing.width}.0 * u_viewport.z*2.0/u_resolution.x*${template.sizing.width}.0/2.0;    // for fixed width/height but scalable
+                  float ch = ${template.sizing.height}.0 * u_viewport.z*2.0/u_resolution.x*${template.sizing.height}.0/2.0;
+                  float wm = ${template.sizing.widthMultiplier ? template.sizing.widthMultiplier : "1.0"};\n`;
+              } else {
+                return `
+                  float cw = ${template.sizing.width}.0/u_resolution.x*2.0;    // for fixed width/height
+                  float ch = ${template.sizing.height}.0/u_resolution.y*2.0;
+                  float wm = ${template.sizing.widthMultiplier ? template.sizing.widthMultiplier : "1.0"};\n`;
+              }
+            }
+            if (template.sizing && !template.sizing.fixedAspect) {
+                return `
+                  float cw = ${template.sizing.width}.0 * u_viewport.z*2.0/u_resolution.x*3.0;   // for fonts that can alter aspect
+                  float ch = ${template.sizing.height}.0 * u_viewport.w*2.0/u_resolution.y*3.0;
+                  float wm = ${template.sizing.widthMultiplier ? template.sizing.widthMultiplier : "1.0"};\n`;
+            }
+            return  `
+                  float cw = u_viewport.z/${tcols}.0;   // for scalable fonts
+                  float ch = u_viewport.w/${tlines}.0;
+                  float wm = 1.0;\n`;
+
+        }
+
+
+
 				function createQuadShader(u, blocks, fragglsl, fragparams) {		// A vanilla quad shader that uses the viewports projection
 		      return new GP.VertexComputer({
 		          units: 6,
@@ -610,12 +869,13 @@ void main() {
 		          renderStep: {  glsl: `void main() {  gl_Position = u_projection * vec4(i_position,0.0,1.0); 	}   `, fragment: fragglsl, fragmentParams: fragparams }
 		      });
 		    }
+
         // utility function to return computer that renders a texture out of a uniform
-        function createTextureShader(u, blocks, texname) {
+        function createTextureShader(u, blocks, texname, divisor) {
             return createQuadShader(u, blocks, `
                     void main() {
                         vec2 uv = ((inverse(u_projection) * vec4((gl_FragCoord.xy/u_resolution.xy * 2.0 - 1.0),0.0,1.0)).xy + 1.0) / 2.0;
-                        fragColor = texture(u_`+texname+`, uv);
+                        fragColor = texture(u_`+texname+`, uv)/${divisor || 1}.0;
                         fragColor.a += 0.5; // Boost the alpha so we see something
                     }`, { [texname]: "sampler2D"} );
         }
