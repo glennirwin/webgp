@@ -519,7 +519,6 @@ function WebGP(canvas, context) {
         }
     }
 
-
     // Object to wrap a uniform buffer so we can maintain its data and share them amongst computers
     // Be wary of byte packing,
     class UniformBlock {

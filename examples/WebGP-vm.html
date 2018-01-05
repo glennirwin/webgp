@@ -543,7 +543,7 @@ void main() {
             xhr.send(null);
         }
 
-      function handleFileSelect(evt) {  // for dragged and dropped files, only images currently
+      function handleFileSelect(evt) {  // for dragged and dropped files
          evt.stopPropagation();
          evt.preventDefault();
          if (fileTargets.length == 0) console.log("No file target enabled");
