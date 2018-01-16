@@ -13,27 +13,27 @@
         canvas.height = window.innerHeight - 5;
 
         const GP = WebGP(canvas);
-        
+
         // Comment these to hide the log and controls
         let log = GP.Util.initializeHeadsUpLog();
         GP.Util.createShaderControls("GP");
-        
+
         // Declare an object to hold the uniform data (GPU globals)
         const uniforms = { time: Date.now(), mousePos: [0.0, 0.0] };
-        
+
         // Update the uniform when the mouse moves, it will be picked up in params (must be converted to -1 - +1 coordinates for WebGL)
         window.addEventListener('mousemove', event => {
-           uniforms.mousePos[0] = event.clientX / canvas.width * 2.0 - 1.0; 
-           uniforms.mousePos[1] = (event.clientY / canvas.height * 2.0 - 1.0) * -1.0; 
+           uniforms.mousePos[0] = event.clientX / canvas.width * 2.0 - 1.0;
+           uniforms.mousePos[1] = (event.clientY / canvas.height * 2.0 - 1.0) * -1.0;
         });
-        
+
         // Create a vertex computer with ONE MILLION particles
         // this is a very simple example of a WebGP process
          const vc = new GP.VertexComputer({
-            
+
                 // The number of units/elements/objects etc...
                 units: 1e6,
-                
+
                 // define the structure of each unit's data, order them to ensure they do not cross 16 byte block boundary
                 struct: {
                     position: "vec2",
@@ -44,14 +44,14 @@
 
                 // attach the uniform object that will be used for this computer
                 uniforms: uniforms,
-                
-                // initialize each objects data with a given object.  
+
+                // initialize each objects data with a given object.
                 // Note: Use the index i passed in to map your data
                 initializeObject: (i) => { return {
                     position: [Math.random()*2-1,Math.random()*2-1],
                     velocity: [(Math.random() - .25) / 20,(Math.random() - .25) / 20],
                     mass: 1 + Math.random() * 2,
-                    color: [0.0,Math.random(),Math.random()* 0.5] 
+                    color: [0.0,Math.random(),Math.random()* 0.5]
                   };
                 },
 
@@ -65,7 +65,7 @@
                             vec2 dir = u_mousePos - i_position;
                             float force = min(0.01, (dist * dist) * 0.001);
                             vec2 accel = force / float(i_mass) * dir;
-            
+
                             o_velocity = (i_velocity + accel) * 0.998;
                             o_position = i_position + o_velocity;
                             o_mass = i_mass;
@@ -83,9 +83,9 @@
                         }   `
                 }
         });
-                
+
         vc.run();  // the simplest way to run
-                        
+
     </script>
 </body>
 </html>

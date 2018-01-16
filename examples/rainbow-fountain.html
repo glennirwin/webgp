@@ -13,7 +13,7 @@
         canvas.height = window.innerHeight - 3;
 
         const GP = WebGP(canvas);
-        
+
         // Comment these to hide the log and controls
         let log = GP.Util.initializeHeadsUpLog();
         GP.Util.createShaderControls("GP");
@@ -21,10 +21,10 @@
         // Create a vertex computer with ONE MILLION particles
         // this is a very simple example of a WebGP process
          const vc = new GP.VertexComputer({
-            
+
                 // The number of units/elements/objects etc...
                 units: 1e6,
-                
+
                 // define the structure of each unit's data
                 struct: {
                     position: "vec2",
@@ -33,7 +33,7 @@
                     color: "vec3"
                 },
 
-                // initialize each objects data with a given object.  
+                // initialize each objects data with a given object.
                 // Note: Use the index i passed in to map your data
                 initializeObject: (i) => { return {
                     position: [Math.random(),Math.random()],
@@ -64,9 +64,9 @@
                         }   `
                 }
         });
-                
+
         vc.run();  // the simplest way to run
-                        
+
     </script>
 </body>
 </html>

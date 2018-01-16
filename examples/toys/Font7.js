@@ -8,7 +8,7 @@ The quick brown fox jumped over the lazy dog
 !@#$%^&*()-_=+[]{}\\|;:'"/?.>,<~
 ABCDEFGHIJKLMNOPQRSTUVWXYZ
 abcdefghijklmnopqrstuvwxyz`,
-      resources: ["keyboard"],
+      resources: ["keybuffer"],
       sizing: { positioning: "autochar", fixedAspect: false, width: 17, height: 17, widthMultiplier: 0.5 },
       styles: [{ name: "normal" }, { name: "bold" }, { name: "italic"} ],
       textures: { iChannel0: "data/font0.png"},

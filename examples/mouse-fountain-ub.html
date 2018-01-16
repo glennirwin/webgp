@@ -13,12 +13,12 @@
         canvas.height = window.innerHeight - 5;
 
         const GP = WebGP(canvas);
-        
+
         // Comment these to hide the log and controls
         let log = GP.Util.initializeHeadsUpLog();
         GP.Util.createShaderControls("GP");
 
-        // Set up a uniform block that we can update as we need 
+        // Set up a uniform block that we can update as we need
         // they will be available in the updateStep shader as u_name
         const uniformBlock = new GP.UniformBlock({
             struct: {
@@ -32,20 +32,20 @@
                 time: Date.now()
             }
         });
-        
+
         // When the mouse changes, update the data in the uniform block and write it to the GPU buffer
         // can also use set({name: value}) to update just the CPU buffer and write() to write the whole uniform block buffer to the GPU
         window.addEventListener('mousemove', event => {
-           uniformBlock.setWrite({ mouseXY: [event.clientX / canvas.width * 2.0 - 1.0, (event.clientY / canvas.height * 2.0 - 1.0) * -1.0 ] });           
+           uniformBlock.setWrite({ mouseXY: [event.clientX / canvas.width * 2.0 - 1.0, (event.clientY / canvas.height * 2.0 - 1.0) * -1.0 ] });
         });
-        
+
         // Create a vertex computer with ONE MILLION particles
         // this is a very simple example of a WebGP process
          const vc = new GP.VertexComputer({
-            
+
                 // The number of units/elements/objects etc...
                 units: 1e6,
-                
+
                 // define the structure of each unit's data
                 struct: {
                     position: "vec2",
@@ -55,14 +55,14 @@
                 },
 
                 uniformBlock: uniformBlock,
-                
-                // initialize each objects data with a given object.  
+
+                // initialize each objects data with a given object.
                 // Note: Use the index i passed in to map your data
                 initializeObject: (i) => { return {
                     position: [Math.random()*2-1,Math.random()*2-1],
                     velocity: [(Math.random() - .25) / 20,(Math.random() - .25) / 20],
                     mass: 1 + Math.random() * 2,
-                    color: [0.0,Math.random(),Math.random()* 0.5] 
+                    color: [0.0,Math.random(),Math.random()* 0.5]
                   };
                 },
 
@@ -92,9 +92,9 @@
                         }   `
                 }
         });
-                
+
         vc.run();  // the simplest way to run
-                        
+
     </script>
 </body>
 </html>

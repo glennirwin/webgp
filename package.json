@@ -1,0 +1,27 @@
+{
+  "name": "webgp-demo",
+  "version": "0.1.0",
+  "description": "Web GPU Programming - if some things can be made simple, complex things can be possible",
+  "author": "Glenn Irwin <glenn@irwinideas.com>",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/glennirwin/webgp.git"
+  },
+  "keywords": [
+    "gpgpu",
+    "gpu",
+    "webgl2",
+    "webgl",
+    "opengl",
+    "gles",
+    "gl"
+  ],
+  "license": "MIT",
+  "main": "examples/index.html",
+  "scripts": {
+    "build": "",
+    "test": ""
+  },
+  "devDependencies": {},
+  "dependencies": {}
+}

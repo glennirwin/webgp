@@ -12,16 +12,16 @@
             const canvas = document.querySelector("canvas");
             canvas.width = window.innerWidth - 3;
             canvas.height = window.innerHeight - 3;
-            
+
             // Get a GraphicsProcessor
             const GP = WebGP(canvas);
 
             let log = GP.Util.initializeHeadsUpLog();
             GP.Util.createShaderControls("GP");
-            
+
             let stats = document.createElement("paragraph");
             stats.appendChild(document.createTextNode(""));
-            GP.Util.butdiv.appendChild(stats);
+            GP.Util.buttondiv.appendChild(stats);
 
             // Structure for uniforms, values will be automatically mapped to these by name
             const uniforms = {time: Date.now(), accel: 0.5, debugTexture: null };
@@ -94,7 +94,7 @@
 
                 updateStep: {
                     glsl: GP.Util.dataTextureMacros+`
-                    #define TEX_WIDTH `+ particleTexDim 
+                    #define TEX_WIDTH `+ particleTexDim
                 +`
                         void main() {
                             o_position = i_position + i_velocity;
@@ -207,20 +207,20 @@
                             gl_PointSize = 2.0;
                         }
                     `}
-            }); 
+            });
             debugReds.setBuffers(tinyReds.getBuffers());
 
             uniforms.accel = 0.001;
-            
+
             let watch = GP.Util.stopWatch();
             var cyclesPerLoop = 1;
-            
+
             function loop() {
                 GP.Util.clear();
                 for (i=0;i<cyclesPerLoop;i++) {
-                    uniforms.time = Date.now() - watch.lastTime; 
+                    uniforms.time = Date.now() - watch.lastTime;
                     watch.mark();
-                    
+
                     snowballs.step();
                     particles.step();
                     tinyReds.step();
@@ -229,17 +229,17 @@
                     debugReds.step();
                     uniforms.debugTexture = particles.getResultTexture();
                     debugParticles.step();
-                    
+
                     if (watch.check() % 100 === 0) {
-                        if (stats) stats.innerText = watch.stats()+"   cycles/loop="+cyclesPerLoop;
+                        if (stats) stats.innerText = watch.stats()+"\nsteps="+cyclesPerLoop;
                         watch.reset();
                     }
                 }
                 GP.Util.GPControls(loop);
             }
 
-            loop();   
-            
+            loop();
+
         </script>
     </body>
 </html>

@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>WebGP-vm  A lightweight window manager for GPU viewports</title>
+  <meta charset="utf-8">
+
+</head>
+<body style="font-family: verdana; margin: 0; background: linear-gradient(to bottom right, black, #333333); ">
+
+    <script src="../src/WebGP.js"></script>
+
+    <script src="apps/Console.js"></script>
+    <script src="apps/TextEditor.js"></script>
+    <script src="apps/TextQuadShader.js"></script>
+    <script src="apps/QuadShader.js"></script>
+    <script src="apps/ImageShader.js"></script>
+
+   <!--  <script src="toys/vpInfo.js"></script>   utility items  set MIN_ITEM to exclude them -->
+    <script src="toys/Console.js"></script>
+    <script src="toys/TextEdit.js"></script>
+    <script src="toys/Image.js"></script>
+    <script src="toys/FirstAudio.js"></script>
+
+    <script src="toys/ImageSample.js"></script>
+    <script src="toys/Primitives.js"></script>
+    <script src="toys/MicAnalysis.js"></script>
+    <script src="toys/Prism.js"></script>
+    <script src="toys/Galaxy.js"></script>
+    <script src="toys/Tunnel.js"></script>
+    <script src="toys/Terrain.js"></script>
+    <script src="toys/StarToy.js"></script>
+    <script src="toys/PlasmaBall.js"></script>
+    <script src="toys/ClockSpiral.js"></script>
+    <script src="toys/ClockCircles.js"></script>
+    <script src="toys/Cubescape.js"></script>
+    <script src="toys/Cubes.js"></script>
+    <script src="toys/Cube.js"></script>
+    <script src="toys/Simplest.js"></script>
+    <script src="toys/HG-SDF.js"></script>
+    <script src="toys/Water.js"></script>
+    <script src="toys/ClockMin.js"></script>
+    <script src="toys/Font7.js"></script>
+    <script src="toys/Font6.js"></script>
+    <script src="toys/Font5.js"></script>
+    <script src="toys/Font4.js"></script>
+    <script src="toys/Font3.js"></script>
+    <script src="toys/Font2.js"></script>
+    <script src="toys/Font3.js"></script>
+    <script src="toys/Font0.js"></script>
+	  <script src="toys/SDFx1.js"></script>
+
+    <script src="WebGP-vm.js"></script>
+
+    <script>
+
+    // load a clock from the kit
+    addItem(loadItem("ClockMin"), { viewport: [ 0.80, 0.75, 0.2, 0.25 ] });
+
+    // Create a simple shader template and add it
+    addItem(loadTemplate({
+          model: "QuadShader",
+          renderStep: {
+            fragment: `
+              void main() {
+                vec2 uv = (inverse(u_projection) * vec4((gl_FragCoord.xy/u_resolution.xy * 2.0 - 1.0),1.0,1.0)).xy;
+                fragColor = vec4(uv,0.5+0.5*sin(u_time),1.0);
+              }  `
+          }
+    }));
+
+  //  addItem(loadItem("Console"));
+
+    </script>
+</body>
+</html>

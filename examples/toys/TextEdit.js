@@ -5,13 +5,13 @@ Kit.TextEdit = {
 The quick brown fox jumped over the lazy dog
 01234567890!@#$%^&*()-_=+[]{}\\|;:'"/?.>,<~
 ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz`,
-      resources: ["keyboard"],
+      resources: ["keybuffer"],
       sizing: { positioning: "autochar", fixedAspect: false, width: 17, height: 17, widthMultiplier: 0.5 },
       styles: [{ name: "normal" }, { name: "bold" }, { name: "italic"} ],
       textures: { iChannel0: "data/font0.png"},
       renderStep: { fragment: `
         // Origin: https://www.shadertoy.com/view/ltcXzs
-        
+
        vec4 char(vec2 p, int C) {   // --- access to the image of ascii code
            if (p.x<0.|| p.x>1. || p.y<0.|| p.y>1.) return vec4(0,0,0,1e5);
            return textureGrad( u_iChannel0, vec2(1.,-1.)*p/16. + fract( vec2(C, C/16+1) / 16. ), dFdx(p/16.),dFdy(p/16.) );

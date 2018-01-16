@@ -13,23 +13,23 @@
         canvas.height = window.innerHeight - 5;;
 
         const GP = WebGP(canvas);
-        
+
         // Comment these to hide the log and controls
         let log = GP.Util.initializeHeadsUpLog();
         GP.Util.createShaderControls("GP");
         let stats = document.createElement("paragraph");
         stats.appendChild(document.createTextNode(""));
-        GP.Util.butdiv.appendChild(stats);
-        
+        GP.Util.buttondiv.appendChild(stats);
+
         let startDate = new Date();
-        
+
         let mouse = [0.0, 0.0, 0.0, 0.0];
         // When the mouse changes, update the mouse info which will be written every frame so no need to write now
         window.addEventListener('mousemove', event => { mouse[0] = event.clientX; mouse[1] = event.clientY;  });
         window.addEventListener('mousedown', event => {  mouse[2] = event.clientX; mouse[3] = event.clientY;  });
         window.addEventListener('mouseup', event => { mouse[2] = 0.0; mouse[3] = 0.0; });
 
-        // Set up a uniform block that we can update as we need 
+        // Set up a uniform block that we can update as we need
         // they will be available in the updateStep shader as u_name
         const uniformBlock = new GP.UniformBlock({
             struct: {
@@ -54,24 +54,24 @@
                 type: GP.gl.TRIANGLES,
                 struct: { position: "vec2" },
                 uniformBlock: uniformBlock,
-                initializeObject: (i) => { 
-                    switch(i) {  
-                        case 0: return { position: [-1,-1] }; 
-                        case 1: return { position: [1,-1] }; 
-                        case 2: return { position: [-1,1] }; 
-                        case 3: return { position: [-1,1] };                
-                        case 4: return { position: [1,-1] };                
-                        case 5: return { position: [1,1] };             
+                initializeObject: (i) => {
+                    switch(i) {
+                        case 0: return { position: [-1,-1] };
+                        case 1: return { position: [1,-1] };
+                        case 2: return { position: [-1,1] };
+                        case 3: return { position: [-1,1] };
+                        case 4: return { position: [1,-1] };
+                        case 5: return { position: [1,1] };
                     };
                 },
                 renderStep: {
-                    glsl: ` 
-                        void main() {  gl_Position = vec4(i_position, 1.0, 1.0);  } 
+                    glsl: `
+                        void main() {  gl_Position = vec4(i_position, 1.0, 1.0);  }
                     `,
                     fragment: `
 // Panteleymonov A K 2015   https://www.shadertoy.com/view/4lfSzS
 // Draw a flaming star
-                
+
 // procedural noise from https://www.shadertoy.com/view/4sfGzS
 
 // animated noise
@@ -98,11 +98,11 @@ float noise4q(vec4 x)
 	f1=f1*f1*(3.0-2.0*f1);
 	f2=f2*f2*(3.0-2.0*f2);
 	vec4 n1 = vec4(0,1.0,157.0,158.0);
-	vec4 n2 = vec4(113.0,114.0,270.0,271.0);	
+	vec4 n2 = vec4(113.0,114.0,270.0,271.0);
 	vec4 vs1 = mix(hash4(p1), hash4(n1.yyyy+p1), f1);
 	vec4 vs2 = mix(hash4(n1.zzzz+p1), hash4(n1.wwww+p1), f1);
 	vec4 vs3 = mix(hash4(p2), hash4(n1.yyyy+p2), f1);
-	vec4 vs4 = mix(hash4(n1.zzzz+p2), hash4(n1.wwww+p2), f1);	
+	vec4 vs4 = mix(hash4(n1.zzzz+p2), hash4(n1.wwww+p2), f1);
 	vs1 = mix(vs1, vs2, f2);
 	vs3 = mix(vs3, vs4, f2);
 	vs2 = mix(hash4(n2.xxxx+p1), hash4(n2.yyyy+p1), f1);
@@ -128,14 +128,14 @@ float noiseSpere(vec3 ray,vec3 pos,float r,mat3 mr,float zoom,vec3 subnoise,floa
 {
   	float b = dot(ray,pos);
   	float c = dot(pos,pos) - b*b;
-    
+
     vec3 r1=vec3(0.0);
-    
+
     float s=0.0;
     float d=0.03125;
-    float d2=zoom/(d*d); 
+    float d2=zoom/(d*d);
     float ar=5.0;
-   
+
     for (int i=0;i<3;i++) {
 		float rq=r*r;
         if(c <rq)
@@ -158,9 +158,9 @@ float ring(vec3 ray,vec3 pos,float r,float size)
 {
   	float b = dot(ray,pos);
   	float c = dot(pos,pos) - b*b;
-   
+
     float s=max(0.0,(1.0-size*abs(r-sqrt(c))));
-    
+
     return s;
 }
 
@@ -169,15 +169,15 @@ float ringRayNoise(vec3 ray,vec3 pos,float r,float size,mat3 mr,float anim)
 {
   	float b = dot(ray,pos);
     vec3 pr=ray*b-pos;
-       
+
     float c=length(pr);
 
     pr*=mr;
-    
+
     pr=normalize(pr);
-    
+
     float s=max(0.0,(1.0-size*abs(r-c)));
-    
+
     float nd=noise4q(vec4(pr*1.0,-anim+c))*2.0;
     nd=pow(nd,2.0);
     float n=0.4;
@@ -187,7 +187,7 @@ float ringRayNoise(vec3 ray,vec3 pos,float r,float size,mat3 mr,float anim)
         ns=noise4q(vec4(pr*50.0,-anim*2.5+c*2.0))*2.0;
     }
     n=n*n*nd*ns;
-    
+
     return pow(s,4.0)+s*s*n;
 }
 
@@ -195,9 +195,9 @@ vec4 noiseSpace(vec3 ray,vec3 pos,float r,mat3 mr,float zoom,vec3 subnoise,float
 {
   	float b = dot(ray,pos);
   	float c = dot(pos,pos) - b*b;
-    
+
     vec3 r1=vec3(0.0);
-    
+
     float s=0.0;
     float d=0.0625*1.5;
     float d2=zoom/d;
@@ -228,7 +228,7 @@ void main()
 	vec2 p = (-u_iResolution.xy + 2.0*gl_FragCoord.xy) / u_iResolution.y;
 
     float time=u_iTime*1.0;
-    
+
 	float mx = u_iMouse.z>0.0?u_iMouse.x/u_iResolution.x*10.0:time*0.025;
     float my = u_iMouse.z>0.0?u_iMouse.y/u_iResolution.y*4.0-2.0:-0.6;
     vec2 rotate = vec2(mx,my);
@@ -236,24 +236,24 @@ void main()
     vec2 sins=sin(rotate);
     vec2 coss=cos(rotate);
     mat3 mr=mat3(vec3(coss.x,0.0,sins.x),vec3(0.0,1.0,0.0),vec3(-sins.x,0.0,coss.x));
-    mr=mat3(vec3(1.0,0.0,0.0),vec3(0.0,coss.y,sins.y),vec3(0.0,-sins.y,coss.y))*mr;    
+    mr=mat3(vec3(1.0,0.0,0.0),vec3(0.0,coss.y,sins.y),vec3(0.0,-sins.y,coss.y))*mr;
 
     mat3 imr=mat3(vec3(coss.x,0.0,-sins.x),vec3(0.0,1.0,0.0),vec3(sins.x,0.0,coss.x));
     imr=imr*mat3(vec3(1.0,0.0,0.0),vec3(0.0,coss.y,-sins.y),vec3(0.0,sins.y,coss.y));
-	
+
     vec3 ray = normalize(vec3(p,2.0));
     vec3 pos = vec3(0.0,0.0,3.0);
-    
+
     float s1=noiseSpere(ray,pos,1.0,mr,0.5,vec3(0.0),time);
     s1=pow(min(1.0,s1*2.4),2.0);
     float s2=noiseSpere(ray,pos,1.0,mr,4.0,vec3(83.23,34.34,67.453),time);
     s2=min(1.0,s2*2.2);
     fragColor = vec4( mix(vec3(1.0,1.0,0.0),vec3(1.0),pow(s1,60.0))*s1, 1.0 );
     fragColor += vec4( mix(mix(vec3(1.0,0.0,0.0),vec3(1.0,0.0,1.0),pow(s2,2.0)),vec3(1.0),pow(s2,10.0))*s2, 1.0 );
-	
+
     fragColor.xyz -= vec3(ring(ray,pos,1.03,11.0))*2.0;
     fragColor = max( vec4(0.0), fragColor );
-    
+
     float s3=ringRayNoise(ray,pos,0.96,1.0,mr,time);
     fragColor.xyz += mix(vec3(1.0,0.6,0.1),vec3(1.0,0.95,1.0),pow(s3,3.0))*s3;
 
@@ -261,34 +261,34 @@ void main()
     if (zero>0.0) {
         vec4 s4=noiseSpace(ray,pos,100.0,mr,0.05,vec3(1.0,2.0,4.0),0.0);
     	s4.x=pow(s4.x,3.0);
-    	fragColor.xyz += mix(mix(vec3(1.0,0.0,0.0),vec3(0.0,0.0,1.0),s4.y*1.9),vec3(0.9,1.0,0.1),s4.w*0.75)*s4.x*pow(s4.z*2.5,3.0)*0.2*zero;        
+    	fragColor.xyz += mix(mix(vec3(1.0,0.0,0.0),vec3(0.0,0.0,1.0),s4.y*1.9),vec3(0.9,1.0,0.1),s4.w*0.75)*s4.x*pow(s4.z*2.5,3.0)*0.2*zero;
     }
-    
+
     fragColor = max( vec4(0.0), fragColor );
     fragColor = min( vec4(1.0), fragColor );
 }`
        }
     });
-                        
+
     let watch = GP.Util.stopWatch();
 
     let startTime = Date.now();
         let lastTime = Date.now();
         let newTime;
-        
+
         function loop() {
             watch.mark();
-            
+
             let newTime = Date.now();
             uniformBlock.setWrite({
-                iTimeDelta: (newTime - lastTime)/1000.0, 
+                iTimeDelta: (newTime - lastTime)/1000.0,
                 iTime: (newTime - startTime)/1000.0,
                 iMouse: mouse
             });
-            lastTime = newTime;             
-            
+            lastTime = newTime;
+
             toy.step();
-                
+
             if (watch.check() % 100 === 0) {
                 stats.innerText = watch.stats();  watch.reset();
             }
@@ -297,7 +297,7 @@ void main()
 
         log("Click and drag with mouse to rotate the star");
         loop();
-  
+
     </script>
 </body>
 </html>
