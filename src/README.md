@@ -1,5 +1,6 @@
 # [WebGP.js](https://github.com/glennirwin/webgp)
-### Enhanced fork of: [WebGPGPU](https://github.com/npny/webgpgpu)
+
+#### "If some things can be made simple, complex things can be possible"
 
 ![License MIT](https://img.shields.io/badge/license-MIT-lightgrey.svg?style=flat-square)
 ![ES6](https://img.shields.io/badge/ES-6-lightgrey.svg?style=flat-square)
@@ -76,4 +77,6 @@ or download and locally include it [Download](https://rawgit.com/glennirwin/webg
 
 ## License ##
 [WebGP](https://github.com/glennirwin/webgp/) is released under the [MIT license](http://opensource.org/licenses/mit-license.php). Glenn Irwin, 2018.
+
+WebGP.js started as a fork of:
 [WebGPGPU](https://github.com/npny/webgpgpu/) is released under the [MIT license](http://opensource.org/licenses/mit-license.php). Pierre Boyer, 2017.
