@@ -4,7 +4,7 @@ WebGP = function(canvas, context) {
     if (typeof document == typeof undefined && !canvas && !context) {
       console.log("going headless.... ha ha ha ha....");
       canvas = { width: 100, height: 100 };
-      try {  context = require('gl')( canvas.width, canvas.height, { preserveDrawingBuffer: true }) } catch (err) {}
+      try { context = require('gl')( canvas.width, canvas.height, { preserveDrawingBuffer: true }) } catch (err) { console.error(err); }
       if (!context) {
         console.error("Sorry, could not create a GPU context");
         return;
@@ -21,19 +21,16 @@ WebGP = function(canvas, context) {
         if (!context) throw "Invalid GL context - browser probably doesn't support WebGL2";
     }
     const gl = context;
-
-    // Extension needed to render to float array textures
+    // Extensions needed to render to float array textures
     let oes_texture_float_linear = gl.getExtension("OES_texture_float_linear");
-    if (!oes_texture_float_linear) console.log("No OES_texture_float_linear support - you may have problems");
+    if (!oes_texture_float_linear) console.log("No OES_texture_float_linear support - you may have problems with numbers in textures normalizing to 1.0");
     let ext_color_buffer_float = gl.getExtension("EXT_color_buffer_float");
-    if (!ext_color_buffer_float) console.log("No EXT_color_buffer_float support - you may have problems");
-
+    if (!ext_color_buffer_float) console.log("No EXT_color_buffer_float support - you may have problems using the framebuffer to capture textures");
     let webgl_debug_shaders = gl.getExtension("WEBGL_debug_shaders");   // Turn on capture of translated shader
-    if (!webgl_debug_shaders) console.log("No WEBGL_debug_shaders support - not a problem");
+    if (!webgl_debug_shaders) console.log("No WEBGL_debug_shaders support - not a problem - just cannot capture local translation of shader");
 
-     class VertexComputer {
+     class VertexComputer {              // A non-abstract representation of a GPU process
         constructor(description) {
-
             this.primitiveType = description.type || gl.POINTS;  // Default of points makes sense for computation
             if (description.vertexArray) {  // Use a pre-defined VertexArray object (copies its attributes/structure, shares the buffer)
                 this.units = description.vertexArray.units;
@@ -52,7 +49,6 @@ WebGP = function(canvas, context) {
                 this.struct.byteSize = this.bytesSoFar;
             }
             if (description.divisor) this.divisor = description.divisor;  // If this is being used as an instance array
-
             this.uniforms = description.uniforms || {};        // pointer to object containing the values for the uniforms (pulled by name)
             if (description.uniformBlock) this.uniformBlock = description.uniformBlock;   // pointer to a UniformBuffer object to use for uniforms
             if (description.uniformBlocks) this.uniformBlocks = description.uniformBlocks;   // array of UniformBuffer object to use for uniforms
@@ -101,7 +97,6 @@ WebGP = function(canvas, context) {
                 this.vertexBuffers = [Util.buildVertexBuffer(this.struct, this.initialData, this.instanceArray, 0),
                                       Util.buildVertexBuffer(this.struct, this.initialData, this.instanceArray, 1)];
             }
-
             if (description.preStep) {
               if (description.preStep instanceof Function) {
                   this.preStep = description.preStep;
@@ -109,8 +104,7 @@ WebGP = function(canvas, context) {
                 console.error("preStep is not a function, please give a function to call before step");
               }
             }
-            // update step is optional, so just render
-            if (description.updateStep) {
+            if (description.updateStep) {          // update step is optional, it will just render
                 this.updateUniforms = description.updateStep.params;
                 let uniformBlocks = "";
                 if (this.uniformBlock) {   // TODO: should depracate, can just use the array version
@@ -148,7 +142,6 @@ WebGP = function(canvas, context) {
                   this.updateShaderCodeFragmentTranslated = webgl_debug_shaders.getTranslatedShaderSource(this.updateShaderFragment);
                 }
                 this.updateProgram = Util.buildProgram(this.updateShaderVertex,this.updateShaderFragment);
-
                 if (this.updateProgram) {
                     Object.keys(this.struct.fields).map((name, i) => gl.bindAttribLocation(this.updateProgram, i, "i_" + name));
                     if (this.instanceArray) Object.keys(this.instanceArray.struct.fields).map((name, i) => gl.bindAttribLocation(this.renderProgram, this.struct.layout.length+i, name));
@@ -178,7 +171,6 @@ WebGP = function(canvas, context) {
                     this.transformFeedback = gl.createTransformFeedback();
                 }
             }
-
             // Render step is optional, so just update
             if (description.renderStep) {
                 let uniformBlocks = "";
@@ -221,7 +213,6 @@ WebGP = function(canvas, context) {
                   this.renderShaderCodeFragmentTranslated = webgl_debug_shaders.getTranslatedShaderSource(this.renderShaderFragment);
                 }
                 this.renderProgram = Util.buildProgram(this.renderShaderVertex,this.renderShaderFragment);
-
                 if (this.renderProgram) {
                     Object.keys(this.struct.fields).map((name, i) => gl.bindAttribLocation(this.renderProgram, i, "i_"+name));
                     if (this.instanceArray) Object.keys(this.instanceArray.struct.fields).map((name, i) => gl.bindAttribLocation(this.renderProgram, this.struct.layout.length+i, "i_"+name) );
@@ -243,9 +234,8 @@ WebGP = function(canvas, context) {
                     if (this.uniformBlock) gl.uniformBlockBinding(this.renderProgram, gl.getUniformBlockIndex(this.renderProgram, "ublock"), 0);
                     if (this.uniformBlocks) this.uniformBlocks.map((b, i) => gl.uniformBlockBinding(this.renderProgram, gl.getUniformBlockIndex(this.renderProgram, "ublocks" + i), i));
                 }
-            }
-           // Setup the output textures for double buffering,
-           if (this.textureOut) {
+           }
+           if (this.textureOut) {         // Setup the output textures for double buffering,
               this.textureWidth = description.textureWidth || Util.data2d(this.units);
               this.textureHeight = description.textureHeight || this.textureWidth;
               if (this.textureOut instanceof Array) {
@@ -260,7 +250,6 @@ WebGP = function(canvas, context) {
            }
            this.iteration = 0;
         }
-
         update(source, destination, textureBuffers) {      // Run the update step using transform feedback
             gl.useProgram(this.updateProgram);
             if (this.uniformBlock) gl.bindBufferBase(gl.UNIFORM_BUFFER, 0, this.uniformBlock.buffer);
@@ -295,7 +284,6 @@ WebGP = function(canvas, context) {
             gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, null);
             gl.bindVertexArray(null);
         }
-
         render(source) {                          // Run the render step
             if (this.renderViewport) gl.viewport(this.renderViewport.x, this.renderViewport.y, this.renderViewport.width, this.renderViewport.height);
             gl.useProgram(this.renderProgram);
@@ -320,7 +308,6 @@ WebGP = function(canvas, context) {
             gl.bindVertexArray(null);
             if (this.renderViewport) gl.viewport(0, 0, canvas.width, canvas.height);
         }
-
         setUniform(tc, name, type, loc, val) {  // tc = texture count - will increment for each texture
             if (val === undefined) { let error = "can't set uniform "+name+" of type " + type + " with value " + val; Util.logger(error); console.error(new Error(error)); }
             switch (Util.glTypes[type].constant) {  // Getting the gl constant avoids a bunch of string compares
@@ -348,13 +335,11 @@ WebGP = function(canvas, context) {
             }
             return tc;
         }
-
         run() {  // run in loop forever
             Util.clear();
             this.step();
             Util.GPControls(this.run.bind(this));
         }
-
         step(iteration) {  // run a single step - Use each buffer alternatively on each step (send iteration to coordinate shared buffers)
             if (this.preStep) this.preStep();
             if (iteration) this.iteration = iteration;
@@ -373,7 +358,6 @@ WebGP = function(canvas, context) {
             }
             if (!iteration) this.iteration++;  // iteration % 2 = the next buffer index that will be the source
         }
-
          getResultBuffer() {  // return the buffer from the last iteration (iteration was incremented after step)
              return this.vertexBuffers[this.iteration % 2];
          }
@@ -437,7 +421,6 @@ WebGP = function(canvas, context) {
              let off = index * this.struct.byteSize;
              return this.struct.layout.reduce((o, f) => (Object.assign(o, {[f.field]: f.getFunction(dataview,off+f.offset)})), {});
          }
-
          // Update a set of values for a unit (does not need to update all of them)
          updateUnit(index, newdata) {  // newdata is an object with the properties to be updated
              // Get the last result unit data into a buffer
@@ -450,7 +433,6 @@ WebGP = function(canvas, context) {
              gl.bufferSubData(gl.ARRAY_BUFFER, off, cunit);
              gl.bindBuffer(gl.ARRAY_BUFFER, null);
          }
-
          copyUnitToBlock(unit,block) {  // Populate a uniform block with a unit
            //console.log("copying "+this.struct.byteSize+" into "+block.struct.byteSize);
            if (this.struct.byteSize > block.struct.byteSize) {
@@ -463,7 +445,6 @@ WebGP = function(canvas, context) {
              gl.bindBuffer(gl.UNIFORM_BUFFER, null);
            }
          }
-
          destroy() {
             gl.deleteTransformFeedback(this.transformFeedback);
             gl.deleteProgram(this.updateProgram);
@@ -524,7 +505,6 @@ WebGP = function(canvas, context) {
     // Object to wrap instance data for instanced drawing
     class InstanceArray {
         constructor(description) {
-          console.log("creating instance array");
             this.units = description.units;
             this.divisor = description.divisor || 1;
             this.struct = {
@@ -697,7 +677,6 @@ WebGP = function(canvas, context) {
           , dataview.getUint8(foffset + 2)
             , dataview.getUint8(foffset + 3)];
     }
-
     // Handy functions to set data in a dataview
     function setIntField(dataview, foffset, val) {
         dataview.setInt32(foffset, val, littleEndian);
@@ -776,7 +755,6 @@ WebGP = function(canvas, context) {
     }
 
     const Util = {
-
         // Define types used in VertexArrays and Uniforms  (Note: not all have been tested, only the float vectors, float, int, and sampler2D have been tested)
         glTypes: {
           "float": {literal: "float", constant: gl.FLOAT, slotType: gl.FLOAT, slots: 1, bytes: 4, qualifier: "", getFunction: getFloatField, setFunction: setFloatField },
@@ -854,13 +832,11 @@ WebGP = function(canvas, context) {
 
         clear() { gl.clear(gl.COLOR_BUFFER_BIT);  },   // Clear the display
         flush() { gl.flush(); },
-
         data2d(units) {   // calculates the size of a side of a 2d square to hold the units in a texture
             return Math.round(Math.sqrt(units)) + 1;
         },
         quadPoints: new Float32Array([-1,-1,1,-1,-1,1,-1,1,1,-1,1,1]).buffer,  // common buffer of 6 points describing 2 triangles
         quadBuffer() { return Util.quadPoints },
-
         createDataTexture(internalFormat, format, type, width, height, data) {
             const texture = gl.createTexture();
             gl.bindTexture(gl.TEXTURE_2D, texture);
@@ -871,10 +847,8 @@ WebGP = function(canvas, context) {
             gl.texImage2D(gl.TEXTURE_2D, 0, internalFormat, width, height, 0, format, type, data);
             return texture;
         },
-
-        // Create a textures to hold work data
+        // Create textures to hold work data
         buildTextureOut(width, height, data) {  return Util.build4FloatTexture(width, height, data); },  // Texture out is always a 4 float rgba
-
         buildFloatTexture(width, height, data) {  return Util.build4FloatTexture(width, height, data); },
         build4FloatTexture(width, height, data) {  return Util.createDataTexture(gl.RGBA32F, gl.RGBA, gl.FLOAT, width, height, data); },
         build4IntTexture(width, height, data) {  return Util.createDataTexture(gl.RGBA32I, gl.RGBA, gl.INT, width, height, data); },
@@ -898,7 +872,6 @@ WebGP = function(canvas, context) {
             gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
             return texture;
         },
-
         buildAudioTexture(audioContext, url) {   // Create a texture to hold audio (uses bincount to determine size)
             let texture = gl.createTexture();
             let analyser = audioContext.createAnalyser()
@@ -923,7 +896,6 @@ WebGP = function(canvas, context) {
               }
             };
         },
-
         buildVertexBuffer(struct, bufferData, instanceArray, bindex) {
             if (!bufferData) { console.error("call to build vertex buffer with no initial data"); return; }
             const vertexArray = gl.createVertexArray();     // Create a new VAO (access wrapper) and a new VBO (actual memory region)
@@ -953,7 +925,6 @@ WebGP = function(canvas, context) {
             // loc is passed to instanceArray to bind the instance attributes
             return {vertexArray: vertexArray, vertexBuffer: vertexBuffer, instanceBuffer: Util.buildInstanceBuffer(loc,instanceArray,bindex), data: bufferData};
         },
-
         buildInstanceBuffer(startLoc, instanceArray, bindex) {
             if (!instanceArray) return;  // no instanceArray needed
             let inbuf;
@@ -989,7 +960,6 @@ WebGP = function(canvas, context) {
             });
             return inbuf;
         },
-
         copyBufferToBuffer(buffera,bufferb) {  // Populate a uniform block with a unit
           gl.bindBuffer(gl.COPY_READ_BUFFER, buffera);
             let basize = gl.getBufferParameter(gl.COPY_READ_BUFFER,gl.BUFFER_SIZE);
@@ -1000,17 +970,14 @@ WebGP = function(canvas, context) {
             gl.bindBuffer(gl.COPY_READ_BUFFER, null);
             gl.bindBuffer(gl.COPY_WRITE_BUFFER, null);
         },
-
         // Generate a list of customizable GLSL declaration from a Javascript map with qualifier option (to support integers in the vertex attribute array)
         declarationList: (scope, map, qual) => Object.entries(map || {}).map(([name, type]) => `${qual ? Util.glTypes[type].qualifier : ""} ${scope} ${Util.glTypes[type].literal} ${name};`).join("\n"),
-
         prefixKeys(prefix, map) {    // Prefix all keys of an object with a given string
             if (map === undefined) return {};
             const prefixedMap = {};
             Object.keys(map).map(key => prefixedMap[prefix + key] = map[key] );
             return prefixedMap;
         },
-
         buildShaderCode(type, uniforms, inputs, outputs, code) {          // build a standard WebGP GLSL program
           return `#version 300 es
 precision highp float;
@@ -1038,7 +1005,6 @@ ${code}`; },
             }
             return shader;
         },
-
         buildProgram(vertexShader, fragmentShader) {   // Merge one vertex shader and one fragment shader into a program
             const program = gl.createProgram();
             gl.attachShader(program, vertexShader);
@@ -1051,7 +1017,6 @@ ${code}`; },
             }
             return program;
         },
-
         // Browser UI Admin stuff - not really GPU specific but it does specifically call the simulation and set parameters
         WINDOW_STOP: false,  // Allows us to cancel all data receipts if something goes wrong
         SHOW_HUL: false,
@@ -1059,7 +1024,7 @@ ${code}`; },
         logger(m) { console.log(m); },   // Default console logger
         setLogger(l) { this.logger = l;},  // if set, will be called with messages
 
-      initializeHeadsUpLog() {
+        initializeHeadsUpLog() {
             // Heads up display of logging
             Util.logdiv = document.createElement("div");
             Util.logdiv.setAttribute("style", "position: absolute; top: 0; left: 90px; ");
@@ -1090,54 +1055,52 @@ ${code}`; },
             };
             return Util.logger;
         },
-
-    // Add Shader controls - call GPControls(myUpdateFunction) in your update function
-    SHADER_STOP: false,
-    SHADER_STEP: false,
-    SHADER_SLOW: false,
-    SHADER_DEFAULT_INTERVAL: 250,
-    SHADER_SLOW_INTERVAL: undefined,
-    stats: undefined,
-    createShaderControls(gp) {  // gp = name of the variable holding the WebGP library object
-        if (Util.SHADER_SLOW_INTERVAL === undefined) {
-          Util.SHADER_SLOW_INTERVAL = 250;
-          var style = document.createElement('style');
-          style.type = "text/css";
-          style.innerHTML =  `#controls { color: white; position: fixed; top: 0px; left: 0;  width: 35px; height: 150px; transition-duration: 0.3s; }
-                              #controls_inner {  position: fixed; top: 0px; left: -60px; width: 60px; height: 150px; opacity: 0.7; transition-duration: 0.3s; }
-                              #controls:hover { left: 60px; }
-                              #controls:hover #controls_inner { left: 0; }`;
-          document.body.appendChild(style);
-          Util.controldiv = document.createElement("div");
-          Util.controldiv.setAttribute("id","controls");
-          document.body.appendChild(Util.controldiv);
-          Util.controldiv.innerHTML = "<svg width='20' height='20' xmlns='http://www.w3.org/2000/svg' version='1.1' viewBox='0 0 100 100'>"
-      +"    	<path  d='m50.011 0c-2.8839 0-5.7139 0.25936-8.4642 0.7281l-1.3424 14.221c-2.8444 0.79287-5.5365 1.9015-8.0546 3.322l-10.99-9.0785c-4.6419 3.286-8.7054 7.3259-11.991 11.968l9.1012 10.99c-1.4188 "
-      +"      2.5151-2.552 5.214-3.3447 8.0546l-14.197 1.35c-0.46893 2.75-0.728 5.58-0.728 8.49 0 2.8897 0.25747 5.7085 0.7281 8.4641l14.198 1.3425c0.79274 2.8406 1.926 5.5395 3.3447 8.0546l-9.0785 10.99c3.2796 "
-      +"      4.6294 7.3161 8.6885 11.945 11.968l11.013-9.1013c2.5197 1.4217 5.2082 2.5515 8.0546 3.3447l1.3424 14.221c2.7503 0.4688 5.5803 0.7054 8.4642 0.7054 2.8838 0 5.6911-0.2366 8.4414-0.7054l1.3424-14.221c2.8465-0.7932 "
-      +"      5.5349-1.923 8.0546-3.3447l11.013 9.1013c4.6293-3.2797 8.6658-7.3388 11.945-11.968l-9.0785-10.99c1.4188-2.5151 2.552-5.214 3.3447-8.0546l14.198-1.3425c0.47063-2.7556 0.7281-5.5744 0.7281-8.4641 "
-      +"      0-2.8848-0.25907-5.7131-0.7281-8.4642l-14.198-1.3424c-0.79274-2.8406-1.926-5.5395-3.3447-8.0546l9.1012-10.99c-3.2855-4.6423-7.349-8.6821-11.991-11.968l-10.99 "
-      +"      9.0785c-2.5181-1.4205-5.2102-2.5291-8.0546-3.322l-1.3424-14.221c-2.7503-0.46874-5.5576-0.7281-8.4414-0.7281zm0 30.967c10.516 0 19.022 8.528 19.022 19.044s-8.5053 19.044-19.022 19.044c-10.516 "
-      +"      0-19.044-8.528-19.044-19.044s8.528-19.044 19.044-19.044z' stroke='gray' fill='darkgray' />"
-      +"   </svg> <div id='controls_inner'></div>";
-          Util.buttondiv = document.getElementById("controls_inner");
-          Util.createButton = function createButton(name, code) {
-              let but = document.createElement("button");
-              but.setAttribute("style", "width: 50px;");
-              but.setAttribute("onClick", code);
-              but.appendChild(document.createTextNode(name));
-              Util.buttondiv.appendChild(but);
-          };
-          Util.createButton("Stop", gp+".Util.SHADER_STOP = true;");
-          Util.createButton("Go", gp+".Util.SHADER_STOP = false;  "+gp+".Util.SHADER_SLOW = false;  "+gp+".Util.SHADER_LOOP_FUNCTION();");
-          Util.createButton("Step", gp+".Util.SHADER_SLOW = false; "+gp+".Util.SHADER_STOP = false; "+gp+".Util.SHADER_STEP = true; "+gp+".Util.SHADER_LOOP_FUNCTION();");
-          Util.createButton("Slow", gp+".Util.SHADER_SLOW = true; "+gp+".Util.SHADER_SLOW_INTERVAL.value = " + Util.SHADER_DEFAULT_INTERVAL + "; "+gp+".Util.SHADER_STOP = false; "+gp+".Util.SHADER_LOOP_FUNCTION();");
-        }
-    },
-
-    // Call this at the bottom of the render loop passing the loop function (without parenthesis)
-    // if no shader controls are activated, will just call the standard requestAnimationFrame() with your function
-    GPControls(fun) {
+      // Add Shader controls - call GPControls(myUpdateFunction) in your update function
+      SHADER_STOP: false,
+      SHADER_STEP: false,
+      SHADER_SLOW: false,
+      SHADER_DEFAULT_INTERVAL: 250,
+      SHADER_SLOW_INTERVAL: undefined,
+      stats: undefined,
+      createShaderControls(gp) {  // gp = name of the variable holding the WebGP library object
+          if (Util.SHADER_SLOW_INTERVAL === undefined) {
+            Util.SHADER_SLOW_INTERVAL = 250;
+            var style = document.createElement('style');
+            style.type = "text/css";
+            style.innerHTML =  `#controls { color: white; position: fixed; top: 0px; left: 0;  width: 35px; height: 150px; transition-duration: 0.3s; }
+                                #controls_inner {  position: fixed; top: 0px; left: -60px; width: 60px; height: 150px; opacity: 0.7; transition-duration: 0.3s; }
+                                #controls:hover { left: 60px; }
+                                #controls:hover #controls_inner { left: 0; }`;
+            document.body.appendChild(style);
+            Util.controldiv = document.createElement("div");
+            Util.controldiv.setAttribute("id","controls");
+            document.body.appendChild(Util.controldiv);
+            Util.controldiv.innerHTML = "<svg width='20' height='20' xmlns='http://www.w3.org/2000/svg' version='1.1' viewBox='0 0 100 100'>"
+        +"    	<path  d='m50.011 0c-2.8839 0-5.7139 0.25936-8.4642 0.7281l-1.3424 14.221c-2.8444 0.79287-5.5365 1.9015-8.0546 3.322l-10.99-9.0785c-4.6419 3.286-8.7054 7.3259-11.991 11.968l9.1012 10.99c-1.4188 "
+        +"      2.5151-2.552 5.214-3.3447 8.0546l-14.197 1.35c-0.46893 2.75-0.728 5.58-0.728 8.49 0 2.8897 0.25747 5.7085 0.7281 8.4641l14.198 1.3425c0.79274 2.8406 1.926 5.5395 3.3447 8.0546l-9.0785 10.99c3.2796 "
+        +"      4.6294 7.3161 8.6885 11.945 11.968l11.013-9.1013c2.5197 1.4217 5.2082 2.5515 8.0546 3.3447l1.3424 14.221c2.7503 0.4688 5.5803 0.7054 8.4642 0.7054 2.8838 0 5.6911-0.2366 8.4414-0.7054l1.3424-14.221c2.8465-0.7932 "
+        +"      5.5349-1.923 8.0546-3.3447l11.013 9.1013c4.6293-3.2797 8.6658-7.3388 11.945-11.968l-9.0785-10.99c1.4188-2.5151 2.552-5.214 3.3447-8.0546l14.198-1.3425c0.47063-2.7556 0.7281-5.5744 0.7281-8.4641 "
+        +"      0-2.8848-0.25907-5.7131-0.7281-8.4642l-14.198-1.3424c-0.79274-2.8406-1.926-5.5395-3.3447-8.0546l9.1012-10.99c-3.2855-4.6423-7.349-8.6821-11.991-11.968l-10.99 "
+        +"      9.0785c-2.5181-1.4205-5.2102-2.5291-8.0546-3.322l-1.3424-14.221c-2.7503-0.46874-5.5576-0.7281-8.4414-0.7281zm0 30.967c10.516 0 19.022 8.528 19.022 19.044s-8.5053 19.044-19.022 19.044c-10.516 "
+        +"      0-19.044-8.528-19.044-19.044s8.528-19.044 19.044-19.044z' stroke='gray' fill='darkgray' />"
+        +"   </svg> <div id='controls_inner'></div>";
+            Util.buttondiv = document.getElementById("controls_inner");
+            Util.createButton = function createButton(name, code) {
+                let but = document.createElement("button");
+                but.setAttribute("style", "width: 50px;");
+                but.setAttribute("onClick", code);
+                but.appendChild(document.createTextNode(name));
+                Util.buttondiv.appendChild(but);
+            };
+            Util.createButton("Stop", gp+".Util.SHADER_STOP = true;");
+            Util.createButton("Go", gp+".Util.SHADER_STOP = false;  "+gp+".Util.SHADER_SLOW = false;  "+gp+".Util.SHADER_LOOP_FUNCTION();");
+            Util.createButton("Step", gp+".Util.SHADER_SLOW = false; "+gp+".Util.SHADER_STOP = false; "+gp+".Util.SHADER_STEP = true; "+gp+".Util.SHADER_LOOP_FUNCTION();");
+            Util.createButton("Slow", gp+".Util.SHADER_SLOW = true; "+gp+".Util.SHADER_SLOW_INTERVAL.value = " + Util.SHADER_DEFAULT_INTERVAL + "; "+gp+".Util.SHADER_STOP = false; "+gp+".Util.SHADER_LOOP_FUNCTION();");
+          }
+      },
+      // Call this at the bottom of the render loop passing the loop function (without parenthesis)
+      // if no shader controls are activated, will just call the standard requestAnimationFrame() with your function
+      GPControls(fun) {
         if (Util.SHADER_SLOW_INTERVAL === undefined) {
             requestAnimationFrame(fun);
         } else {

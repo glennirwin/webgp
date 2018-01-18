@@ -96,4 +96,4 @@ or see the [source](https://github.com/glennirwin/webgp) on Github
 [WebGP](https://github.com/glennirwin/webgp/) is released under the [MIT license](http://opensource.org/licenses/mit-license.php). Glenn Irwin, 2018.
 
 WebGP.js started as a fork of:
-[WebGPGPU](https://github.com/npny/webgpgpu/) is released under the [MIT license](http://opensource.org/licenses/mit-license.php). Pierre Boyer, 2017.
+[WebGPGPU](https://github.com/npny/webgpgpu/) released under the [MIT license](http://opensource.org/licenses/mit-license.php). Pierre Boyer, 2017.

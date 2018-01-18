@@ -19,13 +19,12 @@
 ```html
 <script src="https://rawgit.com/glennirwin/webgp/master/src/webgp.js"></script>
 ```
-or [download](https://rawgit.com/glennirwin/webgp/master/src/webgp.js) and locally include it
-or copy/clone the [source](https://github.com/glennirwin/webgp) on Github.  
+* or [download](https://rawgit.com/glennirwin/webgp/master/src/webgp.js) and locally include it or copy/clone the [source](https://github.com/glennirwin/webgp) on Github.  
 Only the one file is needed and there are no dependencies other than WebGL2 support in the browser
 
 * Read the sample code below and try it out locally
 * Check out the other code [examples](https://glennirwin.github.io/webgp/examples)
-* Read the [API documentation](https://github.com/glennirwin/webgp/src/API.md)
+* Read the [API documentation](https://github.com/glennirwin/webgp/blob/master/src/API.md)
 
 ## Example Code ##
 
@@ -85,4 +84,4 @@ vc.run();  // the simplest way to run it forever, use step() to run in your own 
 [WebGP](https://github.com/glennirwin/webgp/) is released under the [MIT license](http://opensource.org/licenses/mit-license.php). Glenn Irwin, 2018.
 
 WebGP.js started as a fork of:
-[WebGPGPU](https://github.com/npny/webgpgpu/) is released under the [MIT license](http://opensource.org/licenses/mit-license.php). Pierre Boyer, 2017.
+[WebGPGPU](https://github.com/npny/webgpgpu/) released under the [MIT license](http://opensource.org/licenses/mit-license.php). Pierre Boyer, 2017.
