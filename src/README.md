@@ -7,27 +7,27 @@
 ![WebGL2](https://img.shields.io/badge/WebGL-2-lightgrey.svg?style=flat-square)
 ![OpenGL ES 3.0](https://img.shields.io/badge/OpenGL-ES%203.0-lightgrey.svg?style=flat-square)
 
-[WebGP.js](https://github.com/glennirwin/webgp=) is a JavaScript library that uses [WebGL2](https://www.khronos.org/registry/webgl/specs/latest/2.0/) to enable general purpose computation and visualization using your GPU (Graphics Card) in a web browser (latest Chrome/Firefox, Safari soon).  All the ugly GL calls are handled by the library so you can focus on GLSL code for your calculations and graphics.  While some libraries are focused on graphics and others are focused on computation, this library allows you to create very fast applications with both GPU computation AND graphics in a simple declarative way with minimal abstractions.
+[WebGP.js](https://github.com/glennirwin/webgp=) is a JavaScript library for GPU computation and visualization using [WebGL2](https://www.khronos.org/registry/webgl/specs/latest/2.0/)
 
-## Features:
-* Simple declarative creation of a VertexComputer. Just define its attributes, the data, and the GLSL code to use.
-* WebGP will create the buffers, uniforms, vertex arrays and textures for you.  
-* Call step() to cycle once in your own loop, or call run() and it will run forever.
-* uniforms of float and int types now supported, other types not fully tested yet
-* full control of update steps and iteration counters or just call run()
-* VertexComputer updateStep and renderStep in constructor are optional, can use one or both
-* can now share vertex arrays between multiple VertexComputer instances using a VertexArray object, or setBuffers()
-* UniformBlocks can now be created and assigned to a VertexComputer on creation
-* update step can capture output into textures and they can be fed back in as uniforms for texture data lookups
-* Vertex unit data can now be initialized using a closure returning an object that resembles the structure
-* Vertex unit data can be pulled as objects for inspection and easily updated back to the GPU buffer using updateUnit()
-* Debug controls for Stop, Go, Step, Slow can be added with Util.createShaderControls("GP") and calling Util.GPControls(loop) in your render loop
-* enable simple heads up logging with const log = Util.initializeHeadsUpLog()  - will show on a textarea overlay, a function is returned to allow you to pass messages to the log as in log("Hello World")
-* Both controls and heads up logging can be left out for silent production operation (log goes to console)
-* Fragment shaders can now be attached to the renderStep to a more rendering capability.  See the Shadertoy examples.
-* A VertexComputer can be assigned as the instanceComputer of another Vertex computer, the instanceComputer will share its VertexArray as vertex instance attributes (useful for projecting array elements as instances of a Quad)
+**See [Home Page](https://github.com/glennirwin/webgp) for description and features**
 
 **[Demo gallery](https://glennirwin.github.io/webgp/examples/index.html)**
+
+## Instructions ##
+
+* Include the library from [rawgit.com](https://rawgit.com/glennirwin/webgp/master/src/webgp.js)
+```html
+<script src="https://rawgit.com/glennirwin/webgp/master/src/webgp.js"></script>
+```
+or [download](https://rawgit.com/glennirwin/webgp/master/src/webgp.js) and locally include it
+or copy/clone the [source](https://github.com/glennirwin/webgp) on Github.  
+Only the one file is needed and there are no dependencies other than WebGL2 support in the browser
+
+* Read the sample code below and try it out locally
+* Check out the other code [examples](https://glennirwin.github.io/webgp/examples)
+* Read the [API documentation](https://github.com/glennirwin/webgp/src/API.md)
+
+## Example Code ##
 
 ```html
 <!DOCTYPE html>
@@ -80,15 +80,6 @@ vc.run();  // the simplest way to run it forever, use step() to run in your own 
 </body></html>
 ```
 **[Run this example in your browser](https://glennirwin.github.io/webgp/examples/rainbow-fountain.html)**
-
-## Download ##
-
-Include the library from [rawgit.com](https://rawgit.com/glennirwin/webgp/master/src/webgp.js)
-```html
-<script src="https://rawgit.com/glennirwin/webgp/master/src/webgp.js"></script>
-```
-or download and locally include it [Download](https://rawgit.com/glennirwin/webgp/master/src/webgp.js)
-or see the [source](https://github.com/glennirwin/webgp) on Github
 
 ## License ##
 [WebGP](https://github.com/glennirwin/webgp/) is released under the [MIT license](http://opensource.org/licenses/mit-license.php). Glenn Irwin, 2018.
