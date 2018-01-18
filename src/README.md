@@ -7,7 +7,7 @@
 ![WebGL2](https://img.shields.io/badge/WebGL-2-lightgrey.svg?style=flat-square)
 ![OpenGL ES 3.0](https://img.shields.io/badge/OpenGL-ES%203.0-lightgrey.svg?style=flat-square)
 
-[WebGP.js](https://github.com/glennirwin/webgp=) is a JavaScript library for GPU computation and visualization using [WebGL2](https://www.khronos.org/registry/webgl/specs/latest/2.0/)
+a JavaScript library for GPU computation and visualization using [WebGL2](https://www.khronos.org/registry/webgl/specs/latest/2.0/)
 
 **See [Home Page](https://github.com/glennirwin/webgp) for description and features**
 

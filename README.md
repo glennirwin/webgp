@@ -11,7 +11,7 @@
 
 **[Demo gallery](https://glennirwin.github.io/webgp/examples/index.html)**
 
-**[Instructions](https://github.com/glennirwin/webgp/master/src/README.md)**
+**[Instructions](https://github.com/glennirwin/webgp/master/src)**
 
 ## Features:
 * Simple declarative creation of a VertexComputer. Just define its attributes, the data, and the GLSL code to use.
