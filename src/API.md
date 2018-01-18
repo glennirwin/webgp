@@ -19,17 +19,17 @@ const GP = WebGP(); // Can Optionally pass a canvas and/or a gl context
 The object passed back contains the main library objects (VertexComputer, VertexArray, InstanceArray, UniformBlock, Util, canvas, gl) that you will need to use WebGP.  A canvas and/or a WebGL2 context will be created for you on the document body unless you pass one or both to the WebGP function.
 
 ## VertexComputer ##
-A VertexComputer is the central building block of a GPU process in WebGP.  In normal WebGL/OpenGLES development, data values along with vertex and fragment shader programs are compiled, linked, and bound to the given data arrays and uniforms.  In WebGL API calls, this is usually a lot of code that is easy to break and difficult to maintain as your program evolves,  WebGP is factored to allow you to simply describe the data and write the important GLSL code while the fiddly bits are dynamically handled for you by the library.  The dynamic parts are all dealt with at compile time so there is surprisingly little overhead.  
+A VertexComputer is the central building block of a GPU process in WebGP.  In normal WebGL/OpenGLES development, data values along with vertex and fragment shader programs are compiled, linked, and bound to the given data arrays and uniforms.  With direct WebGL API calls, this is usually a lot of code that is easy to break and difficult to maintain as your program evolves.  WebGP is factored to allow you to describe the data and write the important GLSL code while the fiddly bits are dynamically handled for you by the library.  The dynamic parts are almost all dealt with at compile time so there is surprisingly little overhead.  
 
-Cycle times are usually less than a millisecond on even an intel HD5500 internal graphics chip. Note: The GPU may still be processing data after you are finished the cycle, if you request data during a cycle, you will likely see the cycle time jump to a few milliseconds to reveal the actual time spent in the GPU.  It is best to do any updates to the GPU buffer data at the beginning of a cycle to reduce the possibility of CPU to GPU synchronization delays.
+Cycle times are usually less than a millisecond on even an Intel HD5500 laptop graphics chip. Note: The GPU may still be processing data after you are finished the cycle, if you request data during a cycle, you will likely see the cycle time jump to a few milliseconds to reveal the actual time spent in the GPU.  It is best to do any updates to the GPU buffer data at the beginning of a cycle to reduce the possibility of CPU to GPU synchronization delays.
 
-Note: your array (and textureOut textures) will actually have two copies internally to allow for transformFeedback updates to the data - read/write buffers and textures are flipped every cycle.  This will affect your total memory footprint.
+Note: your array (and textureOut textures) will actually have two copies internally to allow for transformFeedback updates to the data - read/write buffers and textures are flipped every cycle.  This will affect your total memory footprint on the GPU but most modern hardware has plenty of room for a lot of data.
 
-Here is a blown out example will all the options:
+Here is an example with all the options described:
 ```javascript
 const vc = new GP.VertexComputer({				// Create a GPU computer
   type: GP.gl.POINTS,  // GL_POINTS is default and good for computation
-  units: 20, // number of elements (not dynamic, although you are free to allocate more than you really need)
+  units: 2, // number of elements (not dynamic, although you are free to allocate more than you really need)
   struct: {	position: "vec2", mass: "float" },  // define the unit data using GLSL types
   initialize: (i) => { return new Float32Array(3); },   // initialize each object data with a buffer
   initializeObject: (i) => { return { position: [0.5,3.2]; }},   // initialize each object data with a return object
@@ -42,7 +42,7 @@ const vc = new GP.VertexComputer({				// Create a GPU computer
   uniformBlocks: [ub1,ub2,ub3],  // Array of UniformBlock objects to attach
   textureOut: true,   // Capture update output as texture (must set gl_Position and textureColor in the shader)
   textureWidth: 10, textureHeight: 10,  // Optionally set the dimensions of the texture, default dimensions are sqrt(units)+1 (enough to fit)
-  textureFeedback: "tex",  // Texture output will be assigned to the uniform with this name so it can be referenced inside the shader
+  textureFeedback: "tex",  // Texture output will be assigned to the uniform with this name so it can be referenced inside the shader using params
   updateStep: {   // update each unit using i_<var> and o_<var> (Transform feedback is used)
   	params: { time: "float", tex: "sampler2D" },  // parameters given to shader as u_<name> can also use sampler2D etc...   
     	glsl: `void main() {  o_position = i_position + 1.0;}`	// Note: make sure to assign all the outputs
@@ -56,7 +56,7 @@ const vc = new GP.VertexComputer({				// Create a GPU computer
 });
 ```
 #### GLSL code ####
-You can assemble you code however you want, feel free to 'bake-in' as many values as you can into the code to make it faster.  All code will automatically be wrapped with:
+You can assemble your GLSL code however you want, feel free to 'bake-in' as many values as you can into the code to make it faster.  All code will automatically be wrapped with:
 * ```#version 300 es``` on the first line. Sorry, WebGP does not support WebGL1 or OpenGL ES 2.0 GLSL code.  Update your browser, it's hard not to.
 * in/out variables are added as defined in the struct (Note: render step will only see i_var)
 * uniform definitions will be added as required by `params:` alongside the `glsl:` code. Extra properties in the uniforms are ignored.
@@ -163,10 +163,10 @@ const va = new GP.VertexArray({
 ```
 Note: Because of the internal flip-flop of read/write transform feedback buffers, having two VertexComputers share the same vertexArray assumes that only one will be updating the values and the other will use it to render a texture or something else.  It is generally better to pass information with textures so this capability does not have a good use-case at this time and may be deprecated.
 
-## InstanceArray concept ##
+## InstanceArray ##
 When creating a VertexComputer, you can give it an InstanceArray object which will cause it to render instances of the main VertexComputer object for each unit in the instance array.  WebGP-vm.js has an example of this but a better much simpler example should be made for this concept because it is very powerful.
 
-## InstanceComputer concept ##
+## InstanceComputer usage ##
 Multiple instances of VertexComputer objects is great, but what if each instance's data needs to change?  Do I have to iterate through them?  Yuch, that would be messy and slow so why not use a VertexComputer as the maintainer of that instance data?  When a VertexComputer has an instanceComputer configured, it will first call the InstanceComputer's step() function when it is stepped, to let you do those updates using shader code.
 
 ## Util ##
@@ -177,16 +177,16 @@ The Util object returned by WebGP contains a number of useful functions used by 
 |**Util.glTypes**| This is an object with properties for each data type as they are used by WebGL.  Recommended types to use are float, vec2, vec3, vec4, int, ivec2, ivec3, ivec4, sampler2D (avoid the short and byte types as they can easily cause packing problems and scramble your data)  |
 |**Util.dataTextureMacros** | A set of handy GLSL macros for mapping data into and out of texture locations by gl_VertexID  |
 |**Util.matrixFunctions** | A set of handy GLSL functions for creating matrix objects for projections  |
-|**clear()** |  clears the display, not always necessary depending on how you are drawing into the whole viewport  |
-|**data2d(units)** | Calculates one side of a square (texture) big enough to hold a pixel for each unit (texture width/height needed for all units)=sqrt(units)+1 |
-|**quadBuffer()** | returns a float buffer containing [-1,-1,1,-1,-1,1,-1,1,1,-1,1,1], a standard GL Quad using 2 triangles (6 x/y points)|
-|**buildTextureOut(width,height,data)** |  for if you want to create a WebGLTexture yourself (data can be omitted for a blank one)  |
-|**buildFloatTexture(width,height,data)** | build a WebGLTexture for float data (4 x 32-bit floats per pixel, RGBA) |
-|**build1IntTexture(width,height,data)** | build a WebGLTexture to hold RED values as a 32-bit int.   See the code for more variations  |
-|**buildImageTexture(image)** | build an image texture using a given image  |
-|**buildAudioTexture(audioContext,url)** | builds a texture suitable for passing audio data.  See WebGP-vm.js for example of how it is used.  |
-|**copyBufferToBuffer(buffera,bufferb)** | copy buffers in the GPU, buffera will be copied onto bufferb, buffer types can vary  |  
-|**getJson(url,function(err,data))**  | Gets the json data from the given url and calls you back with a json object (or err)   |
+|**Util.clear()** |  clears the display, not always necessary depending on how you are drawing into the whole viewport  |
+|**Util.data2d(units)** | Calculates one side of a square (texture) big enough to hold a pixel for each unit (texture width/height needed for all units)=sqrt(units)+1 |
+|**Util.quadBuffer()** | returns a float buffer containing [-1,-1,1,-1,-1,1,-1,1,1,-1,1,1], a standard GL Quad using 2 triangles (6 x/y points)|
+|**Util.buildTextureOut(width,height,data)** |  for if you want to create a WebGLTexture yourself (data can be omitted for a blank one)  |
+|**Util.buildFloatTexture(width,height,data)** | returns a WebGLTexture for float data (4 x 32-bit floats per pixel, RGBA) |
+|**Util.build1IntTexture(width,height,data)** | returns a WebGLTexture to hold RED values as a 32-bit int.   See the code for more variations  |
+|**Util.buildImageTexture(image)** | return an image texture using a given Image() object or image element  |
+|**Util.buildAudioTexture(audioContext,url)** | returns a texture suitable for passing audio data.  See WebGP-vm.js for example of how it is used.  |
+|**Util.copyBufferToBuffer(buffera,bufferb)** | copy buffers in the GPU, buffera will be copied onto bufferb, buffer types can vary  |  
+|**Util.getJson(url,function(err,data))**  | Gets the json data from the given url and calls you back with a json object (or err)   |
 
 ## Logging and debug controls ##
 ```javascript
@@ -237,6 +237,25 @@ loop();  // Start the loop running
 * Normally, in any WebGL program, you would use window.requestAnimationFrame(loop) but we are using GP.Util.GPControls(loop) so that WebGP will display a controls UI with Stop, Go, Step, and Slow buttons (You can also add your own buttons to this control panel).
 
 Depending on the problem you are trying to solve, It is possible that you may need a number of VertexComputers and that your render loop can become complex with values that need to be checked and passed around.  While you can do this in the loop using JavaScript, it is better if you can keep the data in the GPU as much as possible.  In general, it is best to avoid interrupting the cycle and getting/changing values from the GPU arrays which will force a CPU-GPU synchronization.  If possible, use a textureOut to pass information to other shaders or even back to the shader that generated the texture for feedback.   
+
+## Tips and other notes ##
+If you find that your initial data seems to get scrambled in the VertexArrays or UniformBuffers, you may need to reorder your attributes to align them with the 4 and 16 byte memory block sizes that GPU's like to work with.  A general rule of thumb is to put the vec4's at the beginning, then fit smaller values so that they would align with vec4's.  mat4 types should be at the end of the structure as it is 4 x vec4's or 16 floats, you may need to add a dummy attribute to get the beginning of the mat4 to line up with the boundary.  Some trial and error may be required here.
+
+If you are struggling and trying to figure out how to do something in GPU land, you may have to turn your mind around to a parallel way of doing it. While in most linear single-threaded code, we expend a lot of effort to hold calculated values and only maintain them at the levels where they change so we can avoid looping over large arrays repetitively.  This is not an issue for the GPU as it is designed to continuously and repetitively visit every single element in an array at once (depending on the number of elements and the architecture of the GPU)  This ability allows you to frame the problem in a smaller simpler context that many times is actually simpler and more closely fits the real world situation you are modeling.
+
+Use Math over logic when possible.  In a GPU, math is almost always faster than logic.  In an inventory system, for example, you may have a flag to indicate whether a transaction adds or reduces local inventory.  While the logic is simple enough ```if (flag==receipt) inventory += quantity; else inventory -= quantity;``` but it will run faster on the GPU if given in a way that can be used mathematically like a +1 and -1 factor so your code becomes simply ```inventory += quantity * factor``` which will take less operations.  If some transaction do not affect inventory, the factor can be given as zero which will not affect the inventory because the transaction quantity will be multiplied by zero before being applied to the inventory.  Yes, it seems wrong to calculate an inventory adjustment of zero but the logic to decide the calculation is much slower than just doing the math.  If you do it this way, you will likely find that your code actually becomes simpler and more straightforward, and faster too.  If you like advanced math, the GLSL language is also full of all the functions you need accelerated by hardware.
+
+GLSL code may get translated for your GPU into something else (specifically D3D11 HLSL shader code on a windows computer), if the `WEBGL_debug_shaders` extension is supported, the translated code will be written back to a property in your VertexComputer object.  You can access the this local translation by pulling up your VertexComputer object in the developer console of your browser. Note that there can be differences in GLSL and WebGL implementations between browsers and operating systems.  I have found that switch/case statements do not work in Google Chrome on windows while they compile and run fine in Google Chrome on a Mac, so I recommend using ```if then else if``` instead of switch/case until that works consistently everywhere.  Test in as many places as you can, get both FireFox and Chrome for your development, if you have problems, you may find one to give a different error or behaviour than another.  Although this may sound troubling, once things run smoothly, the result tends to be quite reliable and consistent across both browsers that support WebGL2 at this time.
+
+## Future development plans ##
+While there are still fiddly bits in WebGL that have not been directly enabled with WebGP (multiple draw framebuffers, 3D textures, sync/fence objects, query objects, and sampler objects) They have not yet been required in my current development using this library. While they may find their way into this library in the future, it will only be if WebGP can provide added value since you are still free to call any WebGL API function using the GP.gl reference to the gl context object.  Custom calls to GL API functions should not generally affect the VertexComputer step functions. (but WebGL is a really complex API and there is lots to go wrong and deep errors at runtime don't reveal many details about what went wrong)
+
+If you would like to add a feature or enhancement, please fork this repository and submit a pull request that includes an example using the feature. Note: This library is meant to be as simple as possible as well as powerful and fast as possible, maintaining a balance between raw performance and simplicity of use will be favored over completeness of implementation.  
+
+## Documentation notes ##
+The goal of this document is to give you as much detail as possible on one page that you can skim quickly or read completely in a reasonable time. If you are unfamiliar with WebGL/OpenGL concepts, you may find some terms and concepts to be strange but they are the terms used by the OpenGL API and common to mathematics and graphics programming. No attempt has been made to hide these concepts behind abstractions or object models SO most everything you learn using this library will still be relevant and applicable to general WebGL and/or OpenGL ES programming.
+
+* Please log an issue on Github or contact me by email if you find any errors, have any suggestions, or even reasonable questions.
 
 ## License ##
 [WebGP](https://github.com/glennirwin/webgp/) is released under the [MIT license](http://opensource.org/licenses/mit-license.php). Glenn Irwin, 2018.
