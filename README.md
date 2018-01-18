@@ -28,6 +28,7 @@
 * A VertexComputer can be assigned as the instanceComputer of another Vertex computer, the instanceComputer will share its VertexArray as vertex instance attributes (useful for projecting array elements as instances of a Quad)
 
 **[Demo gallery](https://glennirwin.github.io/webgp/examples/index.html)**
+** [Instructions](https://github.com/glennirwin/webgp/src) **
 
 ## Example Code ##
 
