@@ -142,7 +142,7 @@ inputBlock.set({
 ```
 
 ## VertexArray ##
-For passing a pre-built vertex array for a VertexComputer to use (note: units, struct, and data will be inherited).  It is created similar to the VertexComputer. Creating a VertexArray object is similar to the creating a VertexComputer without the shader stuff.  Here is an example:
+For passing a pre-built vertex array for a VertexComputer to use (note: units, struct, and data will be inherited).  It is created similar to the VertexComputer. Creating a VertexArray object is similar to creating a VertexComputer without the shader glsl code.  Here is an example:
 ```javascript
 const va = new GP.VertexArray({
    units: 1000,
@@ -189,10 +189,12 @@ The Util object returned by WebGP contains a number of useful functions used by 
 |**Util.getJson(url,function(err,data))**  | Gets the json data from the given url and calls you back with a json object (or err)   |
 
 ## Logging and debug controls ##
+WebGp provides simple controls to help you run your shaders step by step.  The heads up logs is a text area where you can show messages like the console.
 ```javascript
 let log = GP.Util.initializeHeadsUpLog();  // Comment these to hide the log and controls
 GP.Util.createShaderControls("GP");  // Note GP is the name of the global
 ```
+the `log` object returned can be called to put messages on the display as in `log("Hello World")`.
 
 ## Performance monitoring ##
 The Util object can return a simple stopwatch object that lets you monitor and report the time spent in each cycle and the frame per second (Note: A browser will normally try to hold it to 60 frames/second).  Call `Util.stopWatch()` to create it, `mark()` when you begin a cycle, and `check()` at the end which returns the cycle number so you can calculate a modulus and occasionally update a display or write to a log.  Here is an example of how it is used to report some statistics to the display every 100 cycles (updating the display or writing to the console every cycle slows things down dramatically)
@@ -244,6 +246,8 @@ If you find that your initial data seems to get scrambled in the VertexArrays or
 If you are struggling and trying to figure out how to do something in GPU land, you may have to turn your mind around to a parallel way of doing it. While in most linear single-threaded code, we expend a lot of effort to hold calculated values and only maintain them at the levels where they change so we can avoid looping over large arrays repetitively.  This is not an issue for the GPU as it is designed to continuously and repetitively visit every single element in an array at once (depending on the number of elements and the architecture of the GPU)  This ability allows you to frame the problem in a smaller simpler context that many times is actually simpler and more closely fits the real world situation you are modeling.
 
 Use Math over logic when possible.  In a GPU, math is almost always faster than logic.  In an inventory system, for example, you may have a flag to indicate whether a transaction adds or reduces local inventory.  While the logic is simple enough ```if (flag==receipt) inventory += quantity; else inventory -= quantity;``` but it will run faster on the GPU if given in a way that can be used mathematically like a +1 and -1 factor so your code becomes simply ```inventory += quantity * factor``` which will take less operations.  If some transaction do not affect inventory, the factor can be given as zero which will not affect the inventory because the transaction quantity will be multiplied by zero before being applied to the inventory.  Yes, it seems wrong to calculate an inventory adjustment of zero but the logic to decide the calculation is much slower than just doing the math.  If you do it this way, you will likely find that your code actually becomes simpler and more straightforward, and faster too.  If you like advanced math, the GLSL language is also full of all the functions you need accelerated by hardware.
+
+Use the graphics capability to help you debug your programs, the renderStep after the update step can be used to project points to the display to reflect the data values visually through location, color, and point size.  Watching the points move can reveal much more information about what is going on than trying to step through a debugger or reading numbers streaming to the console -although streaming numbers can help sometimes.
 
 GLSL code may get translated for your GPU into something else (specifically D3D11 HLSL shader code on a windows computer), if the `WEBGL_debug_shaders` extension is supported, the translated code will be written back to a property in your VertexComputer object.  You can access the this local translation by pulling up your VertexComputer object in the developer console of your browser. Note that there can be differences in GLSL and WebGL implementations between browsers and operating systems.  I have found that switch/case statements do not work in Google Chrome on windows while they compile and run fine in Google Chrome on a Mac, so I recommend using ```if then else if``` instead of switch/case until that works consistently everywhere.  Test in as many places as you can, get both FireFox and Chrome for your development, if you have problems, you may find one to give a different error or behaviour than another.  Although this may sound troubling, once things run smoothly, the result tends to be quite reliable and consistent across both browsers that support WebGL2 at this time.
 
