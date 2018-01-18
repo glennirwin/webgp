@@ -32,31 +32,31 @@ GP.Util.createShaderControls("GP");  // Note GP is the name of the global
 Here is a blown out example will all the options
 ```javascript
 const vc = new GP.VertexComputer({				// Create a GPU computer
-		type: GP.gl.POINTS,  // GL_POINTS is default and good for computation
-    units: 2, // number of elements
-    struct: {	position: "vec2", mass: "float" },  // define the unit data using GLSL types
-		initialize: (i) => { return new Float32Array(3); },   // initialize each object data with a buffer
-		initializeObject: (i) => { return { position: [0.5,3.2]; }},   // initialize each object data with a return object
-		vertexArray: aVertexArray,   // Optionally uses a VertexArray object in place of units/struct/initialize
-		instanceArray: anInstanceArray, // draw this array instanced using the attributes in anInstanceArray (exclusive with instanceComputer)
-		instanceComputer: aVertexComputer, // draw this array instanced using the attributes in another VertexComputer
-		divisor: 1, // for instanceComputer - divisor for the attributes (default is one if not specified)
-		uniforms: { seed: 123.2, tex: null },  // Object of literal values that will be used as values for uniforms (textures will need to be a WebGLTexture)
-		uniformBlock: aUniformBlock,  // A single uniform block to attach (should use the array form and deprecate this)
-		uniformBlocks: [ub1,ub2,ub3],  // Array of UniformBlock objects
-		textureOut: true,   // Capture update output as texture (must set gl_Position and textureColor in the shader)
-		textureWidth: 10, textureHeight: 10,  // Optionally set the dimensions of the texture, default dimensions are sqrt(units)+1 (enough to fit)
-		textureFeedback: "tex",  // Texture output will be assigned to the uniform with this name so it can be referenced inside the shader
-    updateStep: {   // update each unit (Transform feedback is used)
-			params: { time: "float", tex: "sampler2D" },  // parameters given to shader as u_<name> can also use sampler2D etc...   
-        glsl: `void main() {  o_position = i_position + 1.0;}`	// Note; make sure to assign all the outputs
-    },
-    renderStep: {			// render each unit by setting the gl_Position and the vertexColor
-					params: { tex: "sampler2D" },   // will be u_tex in the shader
-		        glsl: `void main() { gl_Position = vec4(i_position, 0.0, 1.0); vertexColor = vec4(1.0); }`,
-				fragmentParams: { tex: "sampler2D" },
-	  		fragment: `void main() { fragColor = vec4(1.0); }`  // gl_FragCoord is given to this shader
-    }
+	type: GP.gl.POINTS,  // GL_POINTS is default and good for computation
+	units: 2, // number of elements
+	struct: {	position: "vec2", mass: "float" },  // define the unit data using GLSL types
+	initialize: (i) => { return new Float32Array(3); },   // initialize each object data with a buffer
+	initializeObject: (i) => { return { position: [0.5,3.2]; }},   // initialize each object data with a return object
+	vertexArray: aVertexArray,   // Optionally uses a VertexArray object in place of units/struct/initialize
+	instanceArray: anInstanceArray, // draw this array instanced using the attributes in anInstanceArray (exclusive with instanceComputer)
+	instanceComputer: aVertexComputer, // draw this array instanced using the attributes in another VertexComputer
+	divisor: 1, // for instanceComputer - divisor for the attributes (default is one if not specified)
+	uniforms: { seed: 123.2, tex: null },  // Object of literal values that will be used as values for uniforms (textures will need to be a WebGLTexture)
+	uniformBlock: aUniformBlock,  // A single uniform block to attach (should use the array form and deprecate this)
+	uniformBlocks: [ub1,ub2,ub3],  // Array of UniformBlock objects
+	textureOut: true,   // Capture update output as texture (must set gl_Position and textureColor in the shader)
+	textureWidth: 10, textureHeight: 10,  // Optionally set the dimensions of the texture, default dimensions are sqrt(units)+1 (enough to fit)
+	textureFeedback: "tex",  // Texture output will be assigned to the uniform with this name so it can be referenced inside the shader
+	updateStep: {   // update each unit (Transform feedback is used)
+		params: { time: "float", tex: "sampler2D" },  // parameters given to shader as u_<name> can also use sampler2D etc...   
+	  	glsl: `void main() {  o_position = i_position + 1.0;}`	// Note; make sure to assign all the outputs
+	},
+	renderStep: {			// render each unit by setting the gl_Position and the vertexColor
+	    params: { tex: "sampler2D" },   // will be u_tex in the shader
+	      glsl: `void main() { gl_Position = vec4(i_position, 0.0, 1.0); vertexColor = vec4(1.0); }`,
+	   fragmentParams: { tex: "sampler2D" },
+			     fragment: `void main() { fragColor = vec4(1.0); }`  // gl_FragCoord is given to this shader
+	}
 });
 ```
 other options:
