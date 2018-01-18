@@ -58,12 +58,15 @@ const vc = new GP.VertexComputer({				// Create a GPU computer
 #### GLSL code ####
 You can assemble you code however you want, feel free to 'bake-in' as many values as you can into the code to make it faster.  All code will automatically be wrapped with:
 * ```#version 300 es``` on the first line. Sorry, WebGP does not support WebGL1 or OpenGL ES 2.0 GLSL code.  Update your browser, it's hard not to.
-* in/out variables are added as defined in the struct (Note: render step will only see i_<var>)
+* in/out variables are added as defined in the struct (Note: render step will only see i_var)
 * uniform definitions will be added as required by `params:` alongside the `glsl:` code. Extra properties in the uniforms are ignored.
-* uniformBlock definitions will be added. If uniformBlock has a `name:` defined, your vars will be <name>.u_<var>
+* uniformBlock definitions will be added. If uniformBlock has a `name:` defined, your vars will be name.u_var
 
 #### VertexComputer methods ####
 Some methods are not listed and some methods may have arguments that are not shown here.  This means it is only needed internally, not normally used, or should not be used as it may not have an example to confirm its value and may be removed in a future release - if you do choose to use them, make an example and submit it.  If you want more details, please see the [code](https://github.com/glennirwin/webgp/blob/master/src/WebGP.js), its only 1200 lines of simple Javascript.  Ok, as simple as possible, but not simpler.  The goal is awesome fast GPU applications with minimal fluff code.
+
+|Name  | Description |
+|------|-------------|
 |**run()** |   runs the VertexComputer in a loop (Stop/Go controls will be shown by default)          |
 |**step()**|   calls one update() and/or one render() as needed (based on what steps are configured)  |
 |**{}=getResultUnit(index)**|  creates and returns an object with the unit data copied from the GPU buffer    |
@@ -105,9 +108,9 @@ const uniforms = {   // Simple uniform definition example (can name it anything)
 ```
 
 #### uniformBlocks ####
-Uniform block objects passed using this property (in an array) will be attached to the shaders and each attribute will be available in your GLSL code as u_<name>.  Uniform block data elements can be updated and written back to the GPU memory very quickly and many different VertexComputers can share the same UniformBlocks.  The order of uniformBlocks in the array are not important but it is important that every name in every uniformblock be unique for a shader. The uniformBlock attributes are give as u_<var> to both the vertex and fragment shaders.
+Uniform block objects passed using this property (in an array) will be attached to the shaders and each attribute will be available in your GLSL code as u_name.  Uniform block data elements can be updated and written back to the GPU memory very quickly and many different VertexComputers can share the same UniformBlocks.  The order of uniformBlocks in the array are not important but it is important that every name in every uniformblock be unique for a shader. The uniformBlock attributes are give as u_var to both the vertex and fragment shaders.
 
-Note: If uniformBlock has a `name:` defined, your vars will be <name>.u_<var> instead of u_<var> to allow non-unique names if needed
+Note: If uniformBlock has a `name:` defined, your vars will be name.u_var instead of u_var to allow non-unique names if needed.
 ```JavaScript
 // Set up a uniform block that we can update as we need
 // they will be available in the updateStep shader as u_name
@@ -172,6 +175,9 @@ Multiple instances of VertexComputer objects is great, but what if each instance
 
 ## Util ##
 The Util object returned by WebGP contains a number of useful functions used by the library. Some of them will also be useful to you:
+
+|Name  | Description |
+|------|-------------|
 |**Util.glTypes**| This is an object with properties for each data type as they are used by WebGL.  Recommended types to use are float, vec2, vec3, vec4, int, ivec2, ivec3, ivec4, sampler2D (avoid the short and byte types as they can easily cause packing problems and scramble your data)  |
 |**Util.dataTextureMacros** | A set of handy GLSL macros for mapping data into and out of texture locations by gl_VertexID  |
 |**Util.matrixFunctions** | A set of handy GLSL functions for creating matrix objects for projections  |
