@@ -1,72 +1,48 @@
 <!DOCTYPE html>
-<html>
-<head>
-	<title>WebGP - Rainbow Fountain</title>
-	<meta charset="utf-8">
-</head>
+<html><head><title>WebGP - Rainbow Fountain</title><meta charset="utf-8"></head>
 <body style="margin: 0; background-color: black;">
-    <canvas></canvas>
-    <script src="../src/webgp.js"></script>
-    <script>
-        const canvas = document.querySelector("canvas");
-        canvas.width = window.innerWidth - 3;
-        canvas.height = window.innerHeight - 3;
+<script src="https://rawgit.com/glennirwin/webgp/master/src/webgp.js"></script>
+<script>
 
-        const GP = WebGP(canvas);
+const GP = WebGP();                         // Can Optionally pass a canvas and/or a gl context
 
-        // Comment these to hide the log and controls
-        let log = GP.Util.initializeHeadsUpLog();
-        GP.Util.createShaderControls("GP");
+let log = GP.Util.initializeHeadsUpLog();  // Comment these to hide the log and controls
+GP.Util.createShaderControls("GP");
 
-        // Create a vertex computer with ONE MILLION particles
-        // this is a very simple example of a WebGP process
-         const vc = new GP.VertexComputer({
+const vc = new GP.VertexComputer({				// Create a GPU computer
+    units: 1e6, // number of elements
+    struct: {								  						// define the unit data
+        position: "vec2",
+        velocity: "vec2",    // define attributes using GLSL types
+            mass: "int",
+           color: "vec3"
+    },
+    initializeObject: (i) => { return {           // initialize each object data with a return object
+        position: [Math.random(),Math.random()],
+        velocity: [(Math.random() - .25) / 20,(Math.random() - .25) / 20],  // a vec2 is an array of 2 numbers
+        mass: 1 + Math.random() * 4,
+        color: [Math.random(),Math.random(),Math.random()] };  // Note: Use the index i to map your data
+    },
+    updateStep: {     // update each unit (Transform feedback is used)
+        glsl: `
+            void main() {
+                o_position = i_position + i_velocity;
+                o_velocity = i_velocity - 0.001 * i_position / float(i_mass);
+                o_mass = i_mass;
+                o_color = i_color;
+            }  `										// Note; make sure to assign all the outputs
+    },
+    renderStep: {			// render each unit by setting the gl_Position and the vertexColor
+        glsl: `
+            void main() {      // This is a vertex shader to position the points on the display
+                gl_Position = vec4(i_position, 0.0, 1.0);
+                vertexColor = vec4(i_color, .5);
+                gl_PointSize = float(i_mass)/2.0;
+            }   `     // default fragment shader will be used to show the points
+    }
+});
 
-                // The number of units/elements/objects etc...
-                units: 1e6,
+vc.run();  // the simplest way to run it forever
 
-                // define the structure of each unit's data
-                struct: {
-                    position: "vec2",
-                    velocity: "vec2",
-                    mass: "int",
-                    color: "vec3"
-                },
-
-                // initialize each objects data with a given object.
-                // Note: Use the index i passed in to map your data
-                initializeObject: (i) => { return {
-                    position: [Math.random(),Math.random()],
-                    velocity: [(Math.random() - .25) / 20,(Math.random() - .25) / 20],
-                    mass: 1 + Math.random() * 4,
-                    color: [Math.random(),Math.random(),Math.random()] };
-                },
-
-                // update each unit using this shader code
-                // Note; make sure to assign all the outputs
-                updateStep: {
-                    glsl: `
-                        void main() {
-                            o_position = i_position + i_velocity;
-                            o_velocity = i_velocity - 0.001 * i_position / float(i_mass);
-                            o_mass = i_mass;
-                            o_color = i_color;
-                        }  `
-                },
-
-                // render each unit by setting the gl_Position and the vertexColor
-                renderStep: {
-                    glsl: `
-                        void main() {
-                            gl_Position = vec4(i_position, 0.0, 1.0);
-                            vertexColor = vec4(i_color, .5);
-                            gl_PointSize = float(i_mass)/2.0;
-                        }   `
-                }
-        });
-
-        vc.run();  // the simplest way to run
-
-    </script>
-</body>
-</html>
+</script>
+</body></html>
