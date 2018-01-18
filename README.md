@@ -9,6 +9,10 @@
 
 [WebGP.js](https://github.com/glennirwin/webgp=) is a JavaScript library that uses [WebGL2](https://www.khronos.org/registry/webgl/specs/latest/2.0/) to enable general purpose computation and visualization using your GPU (Graphics Card) in a web browser (latest Chrome/Firefox, Safari soon).  All the ugly GL calls are handled by the library so you can focus on GLSL code for your calculations and graphics.  While some libraries are focused on graphics and others are focused on computation, this library allows you to create very fast applications with both GPU computation AND graphics in a simple declarative way with minimal abstractions.
 
+**[Demo gallery](https://glennirwin.github.io/webgp/examples/index.html)**
+
+**[Instructions](https://github.com/glennirwin/webgp/master/src/README.md)**
+
 ## Features:
 * Simple declarative creation of a VertexComputer. Just define its attributes, the data, and the GLSL code to use.
 * WebGP will create the buffers, uniforms, vertex arrays and textures for you.  
@@ -26,9 +30,6 @@
 * Both controls and heads up logging can be left out for silent production operation (log goes to console)
 * Fragment shaders can now be attached to the renderStep to a more rendering capability.  See the Shadertoy examples.
 * A VertexComputer can be assigned as the instanceComputer of another Vertex computer, the instanceComputer will share its VertexArray as vertex instance attributes (useful for projecting array elements as instances of a Quad)
-
-**[Demo gallery](https://glennirwin.github.io/webgp/examples/index.html)**
-**[Instructions](https://github.com/glennirwin/webgp/src)**
 
 ## Example Code ##
 

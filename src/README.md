@@ -23,7 +23,7 @@
 Only the one file is needed and there are no dependencies other than WebGL2 support in the browser
 
 * Read the sample code below and try it out locally
-* Check out the other code [examples](https://glennirwin.github.io/webgp/examples)
+* Check out the other code [examples](https://github.com/glennirwin/webgp/blob/master/examples)
 * Read the [API documentation](https://github.com/glennirwin/webgp/blob/master/src/API.md)
 
 ## Example Code ##
