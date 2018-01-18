@@ -89,16 +89,12 @@ You specify each field name (warning: order matters) and its type as follows :
 	"color": "vec3",
 }
 ```
-This then gets mapped into native types as defined in [`Util.glTypes`](Util#glTypes)
+This then gets mapped into native types as defined in Util.glTypes
 
 Note:
-	Keep in mind [the peculiar way](https://www.khronos.org/opengl/wiki/Interface_Block_(GLSL)#Buffer_backed) in which OpenGL packs `attributes` and `uniforms` on the card.
+	Keep in mind [the peculiar way](https://www.khronos.org/opengl/wiki/Interface_Block_(GLSL)#Buffer_backed) in which OpenGL packs `attributes` and `uniforms` on the card.  Attributes use up `slots`, `slots` have different `types`, each `type` uses up a specific amount of `bytes`, there are composite types (e.g. `mat3`) that use up several `blocks`, `blocks` line up into `rows` (usually 4-`block` wide), and there is an overall `block` limit of `gl.MAX_VARYING_VECTORS`, which is usually 16.  Because of that, it might be advantageous to pay attention to how your fields are getting packed `byte`- and `block`-wise, and to reorder fields so that they fall on a 4-`block` boundary, or to pack multiple related fields into a single `vec4`.  Because of this complexity, it is recommended to use just float, int, and their vector types to keep each component at 4 bytes long - I haven't had much luck trying to use smaller types as they tend to use 4 bytes at a minimum in a uniformBlock for each component.  A single boolean takes up 4 bytes in a uniformBlock, so we might as well use an int and have 32 booleans. (The WebGL2 version of GLSL now has functions to work with ints to extract booleans)
 
-	Attributes use up `slots`, `slots` have different `types`, each `type` uses up a specific amount of `bytes`, there are composite types (e.g. `mat3`) that use up several `blocks`, `blocks` line up into `rows` (usually 4-`block` wide), and there is an overall `block` limit of `gl.MAX_VARYING_VECTORS`, which is usually 16.
-
-	Because of that, it might be advantageous to pay attention to how your fields are getting packed `byte`- and `block`-wise, and to reorder fields so that they fall on a 4-`block` boundary, or to pack multiple related fields into a single `vec4`.  Because of this complexity, it is recommended to use just float, int, and their vector types to keep each component at 4 bytes long - I haven't had much luck trying to use smaller types as they tend to use 4 bytes at a minimum in a uniformBlock for each component.
-
-#### Uniforms ####
+#### uniforms ####
 When a shader has params defined, they are pulled from the given object during each cycle.  This can be used for floating point numbers, integers, and most importantly textures.  Because each uniform must be set for each cycle, many uniforms can slow things down.  It is generally better to put values into a uniformBlock object which can be bound to the shaders directly and you can change and write values as needed, instead of every cycle.  This uniforms object should be mostly used for textures. (mainly because it is the only way to give textures to the GPU shaders in WebGL2)
 ```JavaScript
 const uniforms = {   // Simple uniform definition example (can name it anything)
