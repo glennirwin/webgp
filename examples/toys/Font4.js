@@ -248,7 +248,7 @@ float text(vec2 uv)
     col += char(ch_col,uv);
 
     TEXT_MODE = UNDERLINE;
-    col += print_integer(float(u_frame),4,uv);
+//    col += print_integer(float(u_frame),4,uv);
 
     //Date Text
     print_pos = vec2(2, 2.0 + STRHEIGHT(2.0));

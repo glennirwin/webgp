@@ -340,9 +340,8 @@ WebGP = function(canvas, context) {
             this.step();
             Util.GPControls(this.run.bind(this));
         }
-        step(iteration) {  // run a single step - Use each buffer alternatively on each step (send iteration to coordinate shared buffers)
-            if (this.preStep) this.preStep();
-            if (iteration) this.iteration = iteration;
+
+        step(render = true) {  // run a single step - Use each buffer alternatively on each step (send iteration to coordinate shared buffers)
             if (!this.vertexBuffers) {
                 let error = new Error("sorry, no buffers, no step - please initialize the buffers on creation (giving array of two buffers or initialization function) or call setBuffers(array of 2 vertex buffer objects)");
                 if (Util.logger) Util.logger(error); console.error(error);  // will give us a stack trace
@@ -350,14 +349,15 @@ WebGP = function(canvas, context) {
             if (this.iteration % 2 === 0) {
                 if (this.updateProgram) this.update(this.vertexBuffers[0], this.vertexBuffers[1], this.textureBuffers);
                 if (this.instanceComputer) this.instanceComputer.step();
-                if (this.renderProgram) this.render(this.vertexBuffers[1]);
+                if (render && this.renderProgram) this.render(this.vertexBuffers[1]);
             } else {
                 if (this.updateProgram) this.update(this.vertexBuffers[1], this.vertexBuffers[0], this.textureBuffers);
                 if (this.instanceComputer)  this.instanceComputer.step();
-                if (this.renderProgram) this.render(this.vertexBuffers[0]);
+                if (render && this.renderProgram) this.render(this.vertexBuffers[0]);
             }
-            if (!iteration) this.iteration++;  // iteration % 2 = the next buffer index that will be the source
+            this.iteration++;
         }
+
          getResultBuffer() {  // return the buffer from the last iteration (iteration was incremented after step)
              return this.vertexBuffers[this.iteration % 2];
          }
@@ -399,16 +399,15 @@ WebGP = function(canvas, context) {
         }
         getResultUnitDataView(index) {  // Copy a unit from the result buffer to a dataview
             let vb = this.getResultBuffer();
-            let off = index * this.struct.byteSize;  // Offset to the unit data
             let a = new ArrayBuffer(this.struct.byteSize);
             gl.bindBuffer(gl.ARRAY_BUFFER, vb.vertexBuffer);
-            gl.getBufferSubData(gl.ARRAY_BUFFER, off, new Uint8Array(a));
+            gl.getBufferSubData(gl.ARRAY_BUFFER, index * this.struct.byteSize, new Uint8Array(a));
             gl.bindBuffer(gl.ARRAY_BUFFER, null);
             return new DataView(a);
         }
-         getResultUnit(index) {  // Copy the unit from the result buffer into an object
+        getResultUnit(index) {  // Copy the unit from the result buffer into an object
              return this.getUnit(this.getResultUnitDataView(index),0);
-         }
+        }
         getResultUnits() {  // gets all the units as an array of objects
             let out = [];
             let dv = this.getResultDataView();  // Only want to do this once if getting multiple units
@@ -568,7 +567,7 @@ WebGP = function(canvas, context) {
             if (this.data) {    // Set up the buffer
                 this.buffer = gl.createBuffer();
                 gl.bindBuffer(gl.UNIFORM_BUFFER, this.buffer);
-                gl.bufferData(gl.UNIFORM_BUFFER, this.data, gl.DYNAMIC_DRAW);
+                gl.bufferData(gl.UNIFORM_BUFFER, this.data, gl.STREAM_READ);
                 gl.bindBuffer(gl.UNIFORM_BUFFER, null);
             }
             // Update one or more values in the buffer (does not need to update all of them and the buffer is not written to the GPU)
@@ -903,7 +902,7 @@ WebGP = function(canvas, context) {
 
             gl.bindVertexArray(vertexArray);                // Associate the VBO with the VAO and fill it with the initial data
             gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
-            gl.bufferData(gl.ARRAY_BUFFER, bufferData, gl.DYNAMIC_DRAW);
+            gl.bufferData(gl.ARRAY_BUFFER, bufferData, gl.DYNAMIC_READ);
 
             let loc = 0;                            // Set the VAO to the same bytewise layout as the struct
             struct.layout.map((field, i) => {
@@ -936,7 +935,7 @@ WebGP = function(canvas, context) {
                 const instanceBuffer = gl.createBuffer();
                 inbuf = instanceBuffer;
                 gl.bindBuffer(gl.ARRAY_BUFFER, inbuf);
-                gl.bufferData(gl.ARRAY_BUFFER, instanceArray.initialData, gl.STATIC_DRAW);
+                gl.bufferData(gl.ARRAY_BUFFER, instanceArray.initialData, gl.DYNAMIC_READ);
             }
             // Set the vertex attributes and instance divisor using the same bytewise layout as the struct
             let loc = startLoc;

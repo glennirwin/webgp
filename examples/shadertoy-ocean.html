@@ -28,7 +28,7 @@
 
         let startDate = new Date();
 
-        // When the mouse changes, update the data in the mouse info whick will be written every frame so no need to write
+        // When the mouse changes, update the data in the mouse info which will be written every frame so no need to write
         let mouse = [0.0, 0.0, 0.0, 0.0];
         window.addEventListener('mousemove', event => { mouse[0] = event.clientX; mouse[1] = event.clientY;  });
         window.addEventListener('mousedown', event => {  mouse[2] = event.clientX; mouse[3] = event.clientY;  });
